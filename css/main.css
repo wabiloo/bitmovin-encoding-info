@@ -20,3 +20,14 @@
     border-radius : .2rem;
     font-size: 80%;
 }
+
+table.dataTable td, table.dataTable th {
+    padding: 4px 4px;
+}
+
+table.dataTable tbody td, table.dataTable tbody th {
+    padding: 6px 6px;
+}
+table.dataTable thead td, table.dataTable thead th {
+    padding: 10px 6px;
+}

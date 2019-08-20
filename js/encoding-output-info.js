@@ -3,7 +3,7 @@ const encodingId = getParameterByName('encodingId');
 const bitmovinApi = window['bitmovin-api-sdk'].default({apiKey: apiKey, debug: true});
 
 var player;
-var allmuxings = {};
+var muxingTable;
 
 function getParameterByName(name, url) {
     if (!url) url = window.location.href;
@@ -355,19 +355,6 @@ function addEncodingRow(encoding) {
 }
 
 function addMuxingRow(muxing_type, bitrate, drm_type, urls) {
-    var newRow = $("<tr>");
-    var cols = "";
-
-    cols += `<th scope='row'>${muxing_type}</th>`;
-    cols += `<td>${drm_type ? drm_type : ""}</td>`;
-    cols += `<td>${nFormatter(bitrate)}</td>`;
-
-    cols += `<td>${urls.outputType}</td>`;
-    cols += `<td>${urls.host}</td>`;
-
-    newRow.append(cols);
-
-    var urlCol = $("<td>");
     var urlTable = $('<table class="table table-sm table-hover table-borderless urls"></table>');
     var urlTableBody = $('<tbody>');
 
@@ -384,14 +371,19 @@ function addMuxingRow(muxing_type, bitrate, drm_type, urls) {
     }
 
     urlTable.append(urlTableBody);
-    urlCol.append(urlTable);
-    newRow.append(urlCol);
 
     if (!bitrate) {
         newRow.addClass("not-encoded")
     }
 
-    $("table#muxings").append(newRow);
+    muxingTable.row.add([
+        muxing_type,
+        drm_type ? drm_type : "",
+        bitrate,
+        urls.outputType,
+        urls.host,
+        urlTable.prop('outerHTML')]
+    ).draw(false)
 }
 
 function hideManifestTable() {
@@ -557,6 +549,12 @@ $(document).on('click', '.copyme', function(event) {
 $(document).ready(function () {
     var divTest = $('#test');
     divTest.html(apiKey);
+
+    muxingTable = $('#muxings').DataTable( {
+        "ordering": true,
+        "order": [[ 0, "asc" ],[ 1, "asc" ],[ 2, "desc" ]],
+        "paging": false
+    });
 
     processEncoding(encodingId);
 
