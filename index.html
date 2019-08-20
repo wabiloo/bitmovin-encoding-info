@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="refresh" content="300" >
+    <title>Bitmovin Encoding Outputs</title>
+    <link rel="stylesheet" href="node_modules/bootstrap/dist/css/bootstrap.css">
+    <link rel="stylesheet" href="css/main.css">
+    <script src="node_modules/jquery/dist/jquery.min.js" type="application/javascript"></script>
+    <script src="node_modules/bootstrap/dist/js/bootstrap.bundle.min.js" type="application/javascript"></script>
+    <script src="node_modules/lodash/lodash.min.js" type="application/javascript"></script>
+    <script src="node_modules/@bitmovin/api-sdk/dist/bitmovin-api-sdk.browser.js" type="application/javascript"></script>
+    <script type="text/javascript" src="https://cdn.bitmovin.com/player/web/8/bitmovinplayer.js"></script>
+
+    <script src="js/encoding-output-info.js" type="application/javascript"></script>
+</head>
+<body>
+
+    <nav class="navbar navbar-light bg-light">
+        <a class="navbar-brand" href="#">
+            <img src="img/bitmovin-standard-square.png" width="30" height="30" class="d-inline-block align-top" alt="">
+            &nbsp;Encoding Outputs
+        </a>
+<!--        <div class="loader mr-sm-4">-->
+<!--            <img src="img/loading_animation_dark.gif" height="30">-->
+<!--        </div>-->
+        <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#player-modal">Player</button>
+    </nav>
+
+    <main role="main" class="container-fluid">
+
+        <div class="row">
+            <p><i>Click a cell to copy its value</i></p>
+        </div>
+
+        <div class="row form-group">
+            <div class="row">
+                <table class="table table-lg" id="encodings">
+                    <thead class="thead-light">
+                    <tr>
+                        <th scope="col">Encoding</th>
+                        <th scope="col">Id</th>
+                        <th scope="col">Status</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="row">
+                <table class="table table-lg table-responsive" id="manifests">
+                    <thead class="thead-light">
+                        <tr>
+                            <th scope="col">Manifest</th>
+                            <th scope="col">Output</th>
+                            <th scope="col">Host</th>
+                            <th scope="col">Urls</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="row">
+                <table class="table table-lg table-responsive" id="muxings">
+                    <thead class="thead-light">
+                    <tr>
+                        <th scope="col">Muxing</th>
+                        <th scope="drm">DRM</th>
+                        <th scope="col">Avg Bitrate</th>
+                        <th scope="col">Output</th>
+                        <th scope="col">Host</th>
+                        <th scope="col">Urls</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+
+        <div class="row">
+            <div class="col" id="errors" class="error-msg"></div>
+        </div>
+
+        <div class="row">
+            <div class="col">
+                <div id="plot"></div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="player-modal" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Player </h5>
+                        <div class="loader mr-sm-4">
+                            <img src="img/loading_animation_dark.gif" height="30">
+                        </div>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="test-player"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <div class="stream-info"></div>
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+    </main>
+
+</body>
+</html>

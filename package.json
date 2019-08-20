@@ -1,0 +1,18 @@
+{
+  "name": "encoding-output-info",
+  "version": "0.0.1",
+  "description": "A browser-based tool to get quick actionable information about the outputs of an encoding",
+  "main": "index.html",
+  "dependencies": {
+    "@bitmovin/api-sdk": "^1.21.0-alpha.0",
+    "bootstrap": "^4.3.1",
+    "jquery": "^3.4.1",
+    "lodash": "^4.17.15"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "fabre.lambeau@bitmovin.com",
+  "license": "ISC"
+}

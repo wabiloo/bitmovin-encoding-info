@@ -1,0 +1,22 @@
+.copied {
+    background-color: lightgreen;
+}
+
+.container-fluid {
+    padding-left: 50px;
+    padding-right: 50px;
+    padding-top: 20px;
+    font-size: 85%;
+}
+
+.not-encoded {
+    color: lightgray;
+}
+
+.btn-group-xs > .btn, .btn-xs {
+    padding  : .25rem .4rem;
+    font-size  : .875rem;
+    line-height  : .8;
+    border-radius : .2rem;
+    font-size: 80%;
+}
