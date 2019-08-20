@@ -114,26 +114,6 @@ function sortMuxings2() {
     }]);
 }
 
-function sortMuxings() {
-    var ms = Object.values(muxings);
-    return ms.sort(function(m1, m2) {
-        if (m1.muxing.constructor.name === m2.muxing.constructor.name) {
-            if (m1.drm && m2.drm) {
-                if (m1.drm.constructor.name === m2.drm.constructor.name) {
-                    return m1.muxing.avgBitrate < m2.muxing.avgBitrate
-                } else {
-                    return m1.drm.constructor.name < m2.drm.constructor.name
-                }
-            } else if (m1.drm || m2.drm ) {
-                return m1.hasOwnProperty('drm')
-            } else {
-                return m1.muxing.avgBitrate < m2.muxing.avgBitrate
-            }
-        } else {
-            return m1.muxing.constructor.name < m2.muxing.constructor.name
-        }
-    })
-}
 
 async function fetchManifestOutputInformation(encodingId) {
     const dashManifests = await getDashManifestsForEncodingId(encodingId);
