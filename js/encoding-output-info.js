@@ -2,13 +2,13 @@ const apiKey = getParameterByName('apiKey');
 const encodingId = getParameterByName('encodingId');
 const bitmovinApi = window['bitmovin-api-sdk'].default({apiKey: apiKey, debug: true});
 
-var player;
-var muxingTable;
+let player;
+let muxingTable;
 
 function getParameterByName(name, url) {
     if (!url) url = window.location.href;
     name = name.replace(/[\[\]]/g, '\\$&');
-    var regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)'),
+    let regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)'),
         results = regex.exec(url);
     if (!results) return null;
     if (!results[2]) return '';
@@ -29,7 +29,7 @@ async function fetchEncodingInformation(encodingId) {
 }
 
 async function fetchMuxingOutputInformation(encodingId) {
-    var allMuxings = {};
+    let allMuxings = {};
 
     const muxings = await getMuxingsForEncodingId(encodingId);
     muxings.items.forEach(async function(muxing)  {
@@ -44,7 +44,7 @@ async function fetchMuxingOutputInformation(encodingId) {
             }
         });
 
-        muxingDrms = await getMuxingDrms(encodingId, muxing);
+        let muxingDrms = await getMuxingDrms(encodingId, muxing);
 
         muxingDrms.items.forEach(async function(drm) {
             getMuxingDrmDetails(encodingId, muxing, drm).then(fulldrm => {
@@ -57,7 +57,7 @@ async function fetchMuxingOutputInformation(encodingId) {
             })
         });
         console.log(muxingDrms.items)
-    })
+    });
 
     console.log(allMuxings.length);
     Object.values(allMuxings).forEach(muxingInfo => {
@@ -71,14 +71,14 @@ async function fetchMuxingOutputInformation(encodingId) {
 }
 
 async function processMuxingEncodingOutput(muxingOutput, muxing) {
-    fileName = null;
+    let fileName = null;
     if (!isSegmentedMuxing(muxing)) {
         fileName = muxing.filename
     }
 
     const urls = await computeUrls(muxingOutput.outputId, muxingOutput.outputPath, fileName);
 
-    addMuxingRow(getMuxingNameFromClass(muxing.constructor.name), muxing.avgBitrate, null, urls)
+    addMuxingRow(getMuxingNameFromClass(muxing.constructor.name), muxing.avgBitrate, null, urls);
 
     return {
         muxing: muxing,
@@ -88,14 +88,14 @@ async function processMuxingEncodingOutput(muxingOutput, muxing) {
 }
 
 async function processMuxingDrmEncodingOutput(drmOutput, muxing, drm) {
-    fileName = null;
+    let fileName = null;
     if (!isSegmentedMuxing(muxing)) {
         fileName = drm.filename
     }
 
     const urls = await computeUrls(drmOutput.outputId, drmOutput.outputPath, fileName);
 
-    addMuxingRow(getMuxingNameFromClass(muxing.constructor.name), muxing.avgBitrate, getDrmNameFromClass(drm.constructor.name), urls)
+    addMuxingRow(getMuxingNameFromClass(muxing.constructor.name), muxing.avgBitrate, getDrmNameFromClass(drm.constructor.name), urls);
 
     return {
         muxing: drm,
@@ -103,17 +103,6 @@ async function processMuxingDrmEncodingOutput(drmOutput, muxing, drm) {
         drm: drm
     };
 }
-
-function sortMuxings2() {
-    return _.sortBy(Object.values(muxings), [function(m) {
-        return m.muxing.constructor.name;
-    }, function(m) {
-        return m.drm ? m.drm.constructor.name : null;
-    }, function(m) {
-        return m.muxing.avgBitrate;
-    }]);
-}
-
 
 async function fetchManifestOutputInformation(encodingId) {
     const dashManifests = await getDashManifestsForEncodingId(encodingId);
@@ -134,7 +123,7 @@ async function fetchManifestOutputInformation(encodingId) {
 }
 
 async function processManifestEncodingOutput(manifestOutput, manifest) {
-    var manifestName = null;
+    let manifestName = null;
 
     if (manifest instanceof bitmovinApi.SmoothStreamingManifest) {
         manifestName = manifest.clientManifestName;
@@ -153,7 +142,7 @@ async function computeUrls(outputId, outputPath, fileName) {
     const outputType = await getOutputType(outputId);
     const output = await getOutput(outputId, outputType.type);
 
-    var urls = {};
+    let urls = {};
     urls.outputType = getOutputNameFromClass(output.constructor.name);
 
     if (output instanceof bitmovinApi.S3Output) {
@@ -162,7 +151,7 @@ async function computeUrls(outputId, outputPath, fileName) {
         urls = computeGcsUrls(urls, output.bucketName);
     }
 
-    var lastChar = outputPath.substr(-1);
+    let lastChar = outputPath.substr(-1);
     if (lastChar === "/") {
         outputPath = outputPath.slice(0, -1);
     }
@@ -186,9 +175,9 @@ async function computeUrls(outputId, outputPath, fileName) {
 }
 
 function computeS3Urls(urls, bucketName) {
-    var streamingUrl = "https://" + bucketName + ".s3.amazonaws.com" ;
-    var storageUrl = "s3://" + bucketName;
-    var consoleUrl = "https://s3.console.aws.amazon.com/s3/buckets/" + bucketName;
+    let streamingUrl = "https://" + bucketName + ".s3.amazonaws.com" ;
+    let storageUrl = "s3://" + bucketName;
+    let consoleUrl = "https://s3.console.aws.amazon.com/s3/buckets/" + bucketName;
 
     urls.host = bucketName;
     urls.streamingUrl = streamingUrl;
@@ -200,11 +189,11 @@ function computeS3Urls(urls, bucketName) {
 
 function computeGcsUrls(urls, bucketName) {
     // https://storage.googleapis.com/bitmovin-api-europe-west1-ci-input/AWOLNATION_muxed.mkv
-    var streamingUrl = "https://storage.googleapis.com/" + bucketName;
+    let streamingUrl = "https://storage.googleapis.com/" + bucketName;
     // gs://bitmovinApi-api-europe-west1-ci-input/AWOLNATION_muxed.mkv
-    var storageUrl = "gs://" + bucketName ;
+    let storageUrl = "gs://" + bucketName ;
     // https://console.cloud.google.com/storage/browser/_details/bitmovin-api-europe-west1-ci-input/AWOLNATION_muxed.mkv
-    var consoleUrl = "https://console.cloud.google.com/storage/browser/_details/" + bucketName ;
+    let consoleUrl = "https://console.cloud.google.com/storage/browser/_details/" + bucketName ;
 
     urls.host = bucketName;
     urls.streamingUrl = streamingUrl;
@@ -225,7 +214,7 @@ function getMuxingsForEncodingId(encodingId) {
 }
 
 function getMuxingDetails(encodingId, muxing) {
-    var muxingEndpointPath = getMuxingEndpointFromClassName(muxing.constructor.name);
+    let muxingEndpointPath = getMuxingEndpointFromClassName(muxing.constructor.name);
     try {
         return bitmovinApi.encoding.encodings.muxings[muxingEndpointPath].get(encodingId, muxing.id);
     } catch (e) {
@@ -234,14 +223,14 @@ function getMuxingDetails(encodingId, muxing) {
 }
 
 function getMuxingDrms(encodingId, muxing) {
-    var muxingEndpointPath = getMuxingEndpointFromClassName(muxing.constructor.name);
+    let muxingEndpointPath = getMuxingEndpointFromClassName(muxing.constructor.name);
 
     return bitmovinApi.encoding.encodings.muxings[muxingEndpointPath].drm.list(encodingId, muxing.id)
 }
 
 function getMuxingDrmDetails(encoding, muxing, drm) {
-    var muxingEndpointPath = getMuxingEndpointFromClassName(muxing.constructor.name);
-    var drmEndpointPath = getDrmEndpointFromClassName(drm.constructor.name);
+    let muxingEndpointPath = getMuxingEndpointFromClassName(muxing.constructor.name);
+    let drmEndpointPath = getDrmEndpointFromClassName(drm.constructor.name);
 
     return bitmovinApi.encoding.encodings.muxings[muxingEndpointPath].drm[drmEndpointPath].get(encodingId, muxing.id, drm.id)
 }
@@ -308,43 +297,14 @@ function getDrmEndpointFromClassName(classname) {
     return classname
 }
 
-
-const mapBitmovinTypeToEndpointPath = {
-    Fmp4Muxing: "fmp4",
-    CmafMuxing: "cmaf",
-    Mp4Muxing: "mp4",
-    TsMuxing: "ts",
-    WebmMuxing: "webm",
-    Mp3Muxing: "mp3",
-    ProgressiveWebmMuxing: "progressiveTs","PROGRESSIVE_MOV":"ProgressiveMovMuxing","PROGRESSIVE_TS":"ProgressiveTsMuxing","BROADCAST_TS":"BroadcastTsMuxing","CHUNKED_TEXT":"ChunkedTextMuxing","TEXT":"TextMuxing"}
-
 // === Utilities
 
-function nFormatter(num, digits) {
-    var si = [
-        { value: 1, symbol: "" },
-        { value: 1E3, symbol: "k" },
-        { value: 1E6, symbol: "M" },
-        { value: 1E9, symbol: "G" },
-        { value: 1E12, symbol: "T" },
-        { value: 1E15, symbol: "P" },
-        { value: 1E18, symbol: "E" }
-    ];
-    var rx = /\.0+$|(\.[0-9]*[1-9])0+$/;
-    var i;
-    for (i = si.length - 1; i > 0; i--) {
-        if (num >= si[i].value) {
-            break;
-        }
-    }
-    return (num / si[i].value).toFixed(digits).replace(rx, "$1") + si[i].symbol;
-}
 
 // === DOM functions
 
 function addEncodingRow(encoding) {
-    var newRow = $("<tr>");
-    var cols = "";
+    let newRow = $("<tr>");
+    let cols = "";
 
     cols += `<td class="copyme">${encoding.name}</td>`;
     cols += `<td class="copyme">${encoding.id}</td>`;
@@ -354,9 +314,9 @@ function addEncodingRow(encoding) {
     $("table#encodings").append(newRow);
 }
 
-function addMuxingRow(muxing_type, bitrate, drm_type, urls) {
-    var urlTable = $('<table class="table table-sm table-hover table-borderless urls"></table>');
-    var urlTableBody = $('<tbody>');
+function addMuxingRow(muxing_type, bitrate, drm_type, urls, streams) {
+    let urlTable = $('<table class="table table-sm table-hover table-borderless urls"></table>');
+    let urlTableBody = $('<tbody>');
 
     urlTableBody.append(addUrlRow('path', urls.outputPath));
 
@@ -377,7 +337,7 @@ function addMuxingRow(muxing_type, bitrate, drm_type, urls) {
         //newRow.addClass("not-encoded")
     }
 
-    row = {
+    let row = {
         "muxing": muxing_type,
         "drm": drm_type ? drm_type : "-",
         "bitrate": bitrate,
@@ -394,8 +354,8 @@ function hideManifestTable() {
 }
 
 function addManifestRow(manifest_type, urls) {
-    var newRow = $("<tr>");
-    var cols = "";
+    let newRow = $("<tr>");
+    let cols = "";
 
     cols += `<th scope='row'>${manifest_type}</th>`;
     cols += `<td>${urls.outputType}</td>`;
@@ -403,9 +363,9 @@ function addManifestRow(manifest_type, urls) {
 
     newRow.append(cols);
 
-    var urlCol = $("<td>");
-    var urlTable = $('<table class="table table-sm table-hover table-borderless urls"></table>');
-    var urlTableBody = $('<tbody>');
+    let urlCol = $("<td>");
+    let urlTable = $('<table class="table table-sm table-hover table-borderless urls"></table>');
+    let urlTableBody = $('<tbody>');
 
     urlTableBody.append(addUrlRow('path', urls.outputPath));
     urlTableBody.append(addUrlRow('storage', urls.storageUrl, [createLinkButton("console", urls.consoleUrl)]));
@@ -419,8 +379,8 @@ function addManifestRow(manifest_type, urls) {
 }
 
 function addUrlRow(title, url, actions) {
-    var newRow = $("<tr>");
-    var cols = "";
+    let newRow = $("<tr>");
+    let cols = "";
 
     cols += `<th scope='row'>${title}</th>`;
     cols += `<td class="copyme">${url}</td>`;
@@ -428,7 +388,7 @@ function addUrlRow(title, url, actions) {
     newRow.append(cols);
 
     if (actions) {
-        var actionCol = $("<td style='text-align: right'>");
+        let actionCol = $("<td style='text-align: right'>");
         actions.forEach(action => {
             actionCol.append(action);
         });
@@ -439,14 +399,14 @@ function addUrlRow(title, url, actions) {
 }
 
 function createPlayerButton(manifest_type, streamingUrl) {
-    var button = $('<button type="button" class="btn btn-xs btn-primary btn-start-play">play</button>');
+    let button = $('<button type="button" class="btn btn-xs btn-primary btn-start-play">play</button>');
     button.data('streamType', manifest_type);
     button.data('streamUrl', streamingUrl);
     return button
 }
 
 function createLinkButton(name, url) {
-    var button = $(`<a class="btn btn-xs btn-secondary" href="${url}" target="_blank">${name}</a>`);
+    let button = $(`<a class="btn btn-xs btn-secondary" href="${url}" target="_blank">${name}</a>`);
     return button
 }
 
@@ -471,7 +431,7 @@ function dataTable_bitrate(data, type, row, meta) {
 
 function loadPlayer(streamType, stream) {
     showLoader();
-    source = {};
+    let source = {};
 
     switch (streamType) {
         case 'DashManifest':
@@ -509,10 +469,10 @@ $(document).on('click', '.btn-start-play', function(event) {
     event.stopPropagation();
     event.stopImmediatePropagation();
 
-    var btn = $(this);
+    let btn = $(this);
 
-    var stream = btn.data('streamUrl');
-    var streamType = btn.data('streamType');
+    let stream = btn.data('streamUrl');
+    let streamType = btn.data('streamType');
 
     loadPlayer(streamType, stream)
 });
@@ -529,7 +489,7 @@ $(document).on('click', '.copyme', function(event) {
     event.stopPropagation();
     event.stopImmediatePropagation();
 
-    span = $(this)[0];
+    let span = $(this)[0];
 
     const selection = window.getSelection();
     const range = document.createRange();
@@ -560,7 +520,7 @@ $(document).on('click', '.copyme', function(event) {
 });
 
 $(document).ready(function () {
-    var divTest = $('#test');
+    let divTest = $('#test');
     divTest.html(apiKey);
 
     muxingTable = $('#muxings').DataTable( {
@@ -594,7 +554,7 @@ $(document).ready(function () {
         }
     };
 
-    var container = document.getElementById('test-player');
     player = new bitmovin.player.Player(container, config);
+    let container = document.getElementById('test-player');
 
 });
