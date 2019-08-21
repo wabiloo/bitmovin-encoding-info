@@ -6,7 +6,7 @@
     padding-left: 50px;
     padding-right: 50px;
     padding-top: 20px;
-    font-size: 85%;
+    font-size: 90%;
 }
 
 .not-encoded {
@@ -30,4 +30,16 @@ table.dataTable tbody td, table.dataTable tbody th {
 }
 table.dataTable thead td, table.dataTable thead th {
     padding: 10px 6px;
+}
+
+tr.dtrg-level-0 {
+    background-color: lightblue !important;
+}
+
+table.urls {
+    margin-bottom: 0px;
+}
+
+table.urls tr {
+    background-color: transparent !important;
 }

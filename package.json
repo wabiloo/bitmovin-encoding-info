@@ -8,6 +8,8 @@
     "bootstrap": "^4.3.1",
     "datatables.net": "^1.10.19",
     "datatables.net-dt": "^1.10.19",
+    "datatables.net-responsive": "^2.2.3",
+    "datatables.net-rowgroup": "^1.1.0",
     "jquery": "^3.4.1",
     "lodash": "^4.17.15",
     "numeral": "^2.0.6"

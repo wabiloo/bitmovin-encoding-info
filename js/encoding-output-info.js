@@ -33,14 +33,17 @@ async function fetchMuxingOutputInformation(encodingId) {
 
     const muxings = await getMuxingsForEncodingId(encodingId);
     muxings.items.forEach(async function(muxing)  {
-        // TODO - handle DRM case
-        // TODO - somehow order the muxings by type / bitrate
+        console.log("Partial muxing:", muxing);
+
+        let streams = getPartialStreamsFromMuxing(muxing);
+
+        // TODO - determine whether the partial vs full representation are different (and therefore whether this additional call is required)
         await getMuxingDetails(encodingId, muxing).then(fullmuxing => {
-            console.log(fullmuxing);
+            console.log("Full muxing:", fullmuxing);
 
             if (fullmuxing.outputs) {
                 fullmuxing.outputs.forEach(muxingOutput => {
-                    allMuxings[muxing.id] = processMuxingEncodingOutput(muxingOutput, fullmuxing)})
+                    allMuxings[muxing.id] = processMuxingEncodingOutput(muxingOutput, fullmuxing, streams)})
             }
         });
 
@@ -48,11 +51,11 @@ async function fetchMuxingOutputInformation(encodingId) {
 
         muxingDrms.items.forEach(async function(drm) {
             getMuxingDrmDetails(encodingId, muxing, drm).then(fulldrm => {
-                console.log(fulldrm);
+                console.log("DRM info:", fulldrm);
 
                 if (fulldrm.outputs) {
                     fulldrm.outputs.forEach(drmOutput => {
-                        allMuxings[drm.id] = processMuxingDrmEncodingOutput(drmOutput, muxing, fulldrm)})
+                        allMuxings[drm.id] = processMuxingDrmEncodingOutput(drmOutput, muxing, fulldrm, streams)})
                 }
             })
         });
@@ -60,17 +63,17 @@ async function fetchMuxingOutputInformation(encodingId) {
     });
 
     console.log(allMuxings.length);
-    Object.values(allMuxings).forEach(muxingInfo => {
-        if (muxingInfo.drm) {
-            addMuxingRow(getMuxingNameFromClass(muxingInfo.muxing.constructor.name), muxingInfo.muxing.avgBitrate, null, muxingInfo.urls)
-        } else {
-            addMuxingRow(getMuxingNameFromClass(muxingInfo.muxing.constructor.name), muxingInfo.muxing.avgBitrate, muxingInfo.drm.constructor.name, muxingInfo.urls)
-        }
-    })
+    // Object.values(allMuxings).forEach(muxingInfo => {
+    //     if (muxingInfo.drm) {
+    //         addMuxingRow(getMuxingNameFromClass(muxingInfo.muxing.constructor.name), muxingInfo.muxing.avgBitrate, null, muxingInfo.urls)
+    //     } else {
+    //         addMuxingRow(getMuxingNameFromClass(muxingInfo.muxing.constructor.name), muxingInfo.muxing.avgBitrate, muxingInfo.drm.constructor.name, muxingInfo.urls)
+    //     }
+    // })
 
 }
 
-async function processMuxingEncodingOutput(muxingOutput, muxing) {
+async function processMuxingEncodingOutput(muxingOutput, muxing, streams) {
     let fileName = null;
     if (!isSegmentedMuxing(muxing)) {
         fileName = muxing.filename
@@ -78,7 +81,7 @@ async function processMuxingEncodingOutput(muxingOutput, muxing) {
 
     const urls = await computeUrls(muxingOutput.outputId, muxingOutput.outputPath, fileName);
 
-    addMuxingRow(getMuxingNameFromClass(muxing.constructor.name), muxing.avgBitrate, null, urls);
+    addMuxingRow(getMuxingNameFromClass(muxing.constructor.name), muxing.avgBitrate, null, urls, streams);
 
     return {
         muxing: muxing,
@@ -87,7 +90,7 @@ async function processMuxingEncodingOutput(muxingOutput, muxing) {
     };
 }
 
-async function processMuxingDrmEncodingOutput(drmOutput, muxing, drm) {
+async function processMuxingDrmEncodingOutput(drmOutput, muxing, drm, streams) {
     let fileName = null;
     if (!isSegmentedMuxing(muxing)) {
         fileName = drm.filename
@@ -95,7 +98,7 @@ async function processMuxingDrmEncodingOutput(drmOutput, muxing, drm) {
 
     const urls = await computeUrls(drmOutput.outputId, drmOutput.outputPath, fileName);
 
-    addMuxingRow(getMuxingNameFromClass(muxing.constructor.name), muxing.avgBitrate, getDrmNameFromClass(drm.constructor.name), urls);
+    addMuxingRow(getMuxingNameFromClass(muxing.constructor.name), muxing.avgBitrate, getDrmNameFromClass(drm.constructor.name), urls, streams);
 
     return {
         muxing: drm,
@@ -266,6 +269,10 @@ function getOutput(outputId, outputType) {
     }
 }
 
+function getPartialStreamsFromMuxing(muxing) {
+    return muxing.streams.map(muxingstream => muxingstream.streamId )
+}
+
 // === Bitmovin Endpoint and Object name remapping
 
 function getOutputNameFromClass(classname) {
@@ -343,10 +350,13 @@ function addMuxingRow(muxing_type, bitrate, drm_type, urls, streams) {
         "bitrate": bitrate,
         "output": urls.outputType,
         "host": urls.host,
-        "urls": urlTable.prop('outerHTML')
-    }
+        "urls": urlTable.prop('outerHTML'),
+        "streams": streams.join("<br/>")
+    };
 
-    muxingTable.row.add(row).draw()
+    muxingTable.row.add(row);
+    // hack suggested at https://datatables.net/forums/discussion/comment/156646#Comment_156646 to avoid race condition
+    setTimeout(function(){ muxingTable.draw(); }, 2000);
 }
 
 function hideManifestTable() {
@@ -406,8 +416,7 @@ function createPlayerButton(manifest_type, streamingUrl) {
 }
 
 function createLinkButton(name, url) {
-    let button = $(`<a class="btn btn-xs btn-secondary" href="${url}" target="_blank">${name}</a>`);
-    return button
+    return $(`<a class="btn btn-xs btn-secondary" href="${url}" target="_blank">${name}</a>`);
 }
 
 const showLoader = () => {
@@ -539,8 +548,41 @@ $(document).ready(function () {
             },
             { data: "output", title: "Output" },
             { data: "host", title: "Host" },
-            { data: "urls", title: "URLs" }
-        ]
+            {
+                data: null,
+                title: "Streams",
+                // a column just for the button controls
+                className: 'control streams',
+                orderable: false,
+                defaultContent: '',
+            },
+            {
+                data: "urls",
+                title: "URLs",
+                orderable: false
+            },
+            {
+                data: "streams",
+                title: "Streams",
+                // controls DataTables() responsive and force a child row
+                className: "none",
+                width: "50px"
+            },
+        ],
+        rowGroup: {
+            dataSrc: 'drm'
+        },
+        responsive: {
+            details: {
+                type: 'column',
+                target: '.streams'  // jQuery selector as per doc - https://datatables.net/forums/discussion/57793/issue-with-using-responsive-and-a-last-column#latest
+            }
+        },
+        rowCallback: function( row, data, index ) {
+            if (!data.bitrate) {
+                $('td', row).css('color', 'lightgray');
+            }
+        }
     });
 
     processEncoding(encodingId);
