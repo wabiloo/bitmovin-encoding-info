@@ -4,6 +4,7 @@ const bitmovinApi = window['bitmovin-api-sdk'].default({apiKey: apiKey, debug: t
 
 let player;
 let muxingTable;
+let streamTable;
 
 function getParameterByName(name, url) {
     if (!url) url = window.location.href;
@@ -18,6 +19,7 @@ function getParameterByName(name, url) {
 async function processEncoding(encodingId) {
     await fetchEncodingInformation(encodingId);
     await fetchMuxingOutputInformation(encodingId);
+    await fetchStreamInformation(encodingId);
     await fetchManifestOutputInformation(encodingId);
 }
 
@@ -26,6 +28,15 @@ async function fetchEncodingInformation(encodingId) {
     console.log(encoding);
 
     addEncodingRow(encoding)
+}
+
+async function fetchStreamInformation(encodingId) {
+    const streams = await getStreamsForEncodingId(encodingId);
+    streams.items.forEach(async function(stream) {
+        console.log("Partial stream:", stream);
+
+        addStreamRow(stream.id, stream.codecConfigId, stream.bitrate)
+    })
 }
 
 async function fetchMuxingOutputInformation(encodingId) {
@@ -245,6 +256,11 @@ function isSegmentedMuxing(muxing) {
         || muxing instanceof bitmovinApi.CmafMuxing)
 }
 
+function getStreamsForEncodingId(encodingId) {
+    return bitmovinApi.encoding.encodings.streams.list(encodingId)
+}
+
+
 function getDashManifestsForEncodingId(encodingId) {
     return bitmovinApi.encoding.manifests.dash.list(q => q.encodingId(encodingId));
 }
@@ -352,6 +368,20 @@ function addMuxingRow(muxing_type, bitrate, drm_type, urls, streams) {
     muxingTable.row.add(row);
     // hack suggested at https://datatables.net/forums/discussion/comment/156646#Comment_156646 to avoid race condition
     setTimeout(function(){ muxingTable.draw(); }, 2000);
+}
+
+function addStreamRow(stream_id, codec_type, bitrate) {
+    let row = {
+        "stream": stream_id,
+        "codec": codec_type,
+        "bitrate": bitrate,
+        "width": "1",
+        "height": "2"
+    };
+
+    streamTable.row.add(row);
+    // hack suggested at https://datatables.net/forums/discussion/comment/156646#Comment_156646 to avoid race condition
+    setTimeout(function(){ streamTable.draw(); }, 2000);
 }
 
 function hideManifestTable() {
@@ -572,6 +602,33 @@ $(document).ready(function () {
                 type: 'column',
                 target: '.streams'  // jQuery selector as per doc - https://datatables.net/forums/discussion/57793/issue-with-using-responsive-and-a-last-column#latest
             }
+        },
+        rowCallback: function( row, data, index ) {
+            if (!data.bitrate) {
+                $('td', row).css('color', 'lightgray');
+            }
+        }
+    });
+
+    streamTable = $('#streams').DataTable( {
+        ordering: true,
+        order: [[ 1, "asc" ]],
+        paging: false,
+        columns: [
+            { data: "stream", title: "Stream" },
+            { data: "codec", title: "Codec" },
+            {
+                data: "bitrate",
+                title: "Bitrate",
+                defaultContent: "-",
+                type: 'number',
+                render: dataTable_bitrate
+            },
+            { data: "width", title: "Width" },
+            { data: "height", title: "Height" }
+        ],
+        rowGroup: {
+            dataSrc: 'codec'
         },
         rowCallback: function( row, data, index ) {
             if (!data.bitrate) {
