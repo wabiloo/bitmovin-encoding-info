@@ -9,7 +9,8 @@
     "datatables.net": "^1.10.19",
     "datatables.net-dt": "^1.10.19",
     "jquery": "^3.4.1",
-    "lodash": "^4.17.15"
+    "lodash": "^4.17.15",
+    "numeral": "^2.0.6"
   },
   "devDependencies": {},
   "scripts": {

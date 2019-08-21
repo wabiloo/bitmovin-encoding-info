@@ -372,18 +372,21 @@ function addMuxingRow(muxing_type, bitrate, drm_type, urls) {
 
     urlTable.append(urlTableBody);
 
+    // TODO - replace this with DataTable styling
     if (!bitrate) {
-        newRow.addClass("not-encoded")
+        //newRow.addClass("not-encoded")
     }
 
-    muxingTable.row.add([
-        muxing_type,
-        drm_type ? drm_type : "-",
-        bitrate ? parseInt(bitrate) : "-",
-        urls.outputType,
-        urls.host,
-        urlTable.prop('outerHTML')]
-    ).draw(false)
+    row = {
+        "muxing": muxing_type,
+        "drm": drm_type ? drm_type : "-",
+        "bitrate": bitrate,
+        "output": urls.outputType,
+        "host": urls.host,
+        "urls": urlTable.prop('outerHTML')
+    }
+
+    muxingTable.row.add(row).draw()
 }
 
 function hideManifestTable() {
@@ -453,6 +456,16 @@ const showLoader = () => {
 const hideLoader = () => {
     $('.loader').hide()
 };
+
+// === DataTables Functions
+
+function dataTable_bitrate(data, type, row, meta) {
+    if (type === "sort") {
+        return data ? parseInt(data) : null;
+    } else {
+        return data ? numeral(data).format('0 b') : undefined;
+    }
+}
 
 // === Bitmovin Player functions
 
@@ -553,7 +566,20 @@ $(document).ready(function () {
     muxingTable = $('#muxings').DataTable( {
         "ordering": true,
         "order": [[ 0, "asc" ],[ 1, "asc" ],[ 2, "desc" ]],
-        "paging": false
+        "paging": false,
+        "columns": [
+            { data: "muxing", title: "Muxing" },
+            { data: "drm", title: "DRM" },
+            {
+                data: "bitrate",
+                title: "Avg Bitrate",
+                defaultContent: "-",
+                render: dataTable_bitrate
+            },
+            { data: "output", title: "Output" },
+            { data: "host", title: "Host" },
+            { data: "urls", title: "URLs" }
+        ]
     });
 
     processEncoding(encodingId);
