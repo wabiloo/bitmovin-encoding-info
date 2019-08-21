@@ -9,6 +9,14 @@
     font-size: 90%;
 }
 
+/* fix for fixed navbar */
+a.anchor {
+    display: block;
+    position: relative;
+    top: -60px;
+    visibility: hidden;
+}
+
 .not-encoded {
     color: lightgray;
 }
@@ -42,4 +50,8 @@ table.urls {
 
 table.urls tr {
     background-color: transparent !important;
+}
+
+table.urls th {
+    width: 6em;
 }

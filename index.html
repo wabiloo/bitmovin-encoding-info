@@ -22,11 +22,18 @@
 </head>
 <body>
 
-    <nav class="navbar navbar-light bg-light">
+    <nav class="navbar navbar-light bg-light navbar-expand-lg fixed-top">
         <a class="navbar-brand" href="#">
             <img src="img/bitmovin-standard-square.png" width="30" height="30" class="d-inline-block align-top" alt="">
             &nbsp;Encoding Outputs
         </a>
+        <div class="collapse navbar-collapse">
+            <div class="navbar-nav">
+                <a class="nav-item nav-link" href="#manifests-anchor">Manifests</a>
+                <a class="nav-item nav-link" href="#muxings-anchor">Muxings</a>
+                <a class="nav-item nav-link" href="#streams-anchor">Streams</a>
+            </div>
+        </div>
 <!--        <div class="loader mr-sm-4">-->
 <!--            <img src="img/loading_animation_dark.gif" height="30">-->
 <!--        </div>-->
@@ -35,7 +42,7 @@
 
     <main role="main" class="container-fluid">
 
-        <div class="row">
+        <div class="row" style="margin-top: 54px;">
             <p><i>Click a cell to copy its value</i></p>
         </div>
 
@@ -55,6 +62,7 @@
                 </table>
             </div>
 
+            <a id="manifests-anchor" class="anchor"></a>
             <div class="row">
                 <table class="table table-lg table-responsive" id="manifests">
                     <thead class="thead-light">
@@ -70,6 +78,7 @@
                 </table>
             </div>
 
+            <a id="muxings-anchor" class="anchor"></a>
             <div class="row">
                 <table class="table table-lg stripe" id="muxings" style="width: 100%">
                     <thead class="thead-light">
@@ -80,16 +89,21 @@
                 </table>
             </div>
 
-
+            <a id="streams-anchor" class="anchor"></a>
         <div class="row">
-            <div class="col" id="errors" class="error-msg"></div>
-        </div>
+                <table class="table table-lg stripe" id="streams" style="width: 100%">
+                    <thead class="thead-light">
+                    </thead>
+                    <tbody>
 
-        <div class="row">
-            <div class="col">
-                <div id="plot"></div>
+                    </tbody>
+                </table>
             </div>
+
+            <div>
+                <div class="col" id="errors" class="error-msg"></div>
         </div>
+
         </div>
 
         <div class="modal fade" id="player-modal" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true">

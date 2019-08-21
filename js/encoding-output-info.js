@@ -339,11 +339,6 @@ function addMuxingRow(muxing_type, bitrate, drm_type, urls, streams) {
 
     urlTable.append(urlTableBody);
 
-    // TODO - replace this with DataTable styling
-    if (!bitrate) {
-        //newRow.addClass("not-encoded")
-    }
-
     let row = {
         "muxing": muxing_type,
         "drm": drm_type ? drm_type : "-",
