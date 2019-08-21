@@ -460,7 +460,7 @@ const hideLoader = () => {
 // === DataTables Functions
 
 function dataTable_bitrate(data, type, row, meta) {
-    if (type === "sort") {
+    if (type === "sort" || type === 'type') {
         return data ? parseInt(data) : null;
     } else {
         return data ? numeral(data).format('0 b') : undefined;
@@ -564,16 +564,17 @@ $(document).ready(function () {
     divTest.html(apiKey);
 
     muxingTable = $('#muxings').DataTable( {
-        "ordering": true,
-        "order": [[ 0, "asc" ],[ 1, "asc" ],[ 2, "desc" ]],
-        "paging": false,
-        "columns": [
+        ordering: true,
+        order: [[ 0, "asc" ],[ 1, "asc" ],[ 2, "desc" ]],
+        paging: false,
+        columns: [
             { data: "muxing", title: "Muxing" },
             { data: "drm", title: "DRM" },
             {
                 data: "bitrate",
                 title: "Avg Bitrate",
                 defaultContent: "-",
+                type: 'number',
                 render: dataTable_bitrate
             },
             { data: "output", title: "Output" },

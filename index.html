@@ -36,9 +36,10 @@
             <p><i>Click a cell to copy its value</i></p>
         </div>
 
-        <div class="row form-group">
+        <div class="container-fluid">
+
             <div class="row">
-                <table class="table table-lg" id="encodings">
+                <table class="table table-lg table-responsive" id="encodings">
                     <thead class="thead-light">
                     <tr>
                         <th scope="col">Encoding</th>
@@ -69,14 +70,6 @@
             <div class="row">
                 <table class="table table-lg table-responsive" id="muxings">
                     <thead class="thead-light">
-<!--                    <tr>-->
-<!--                        <th scope="col">Muxing</th>-->
-<!--                        <th scope="drm">DRM</th>-->
-<!--                        <th scope="col">Avg Bitrate</th>-->
-<!--                        <th scope="col">Output</th>-->
-<!--                        <th scope="col">Host</th>-->
-<!--                        <th scope="col">Urls</th>-->
-<!--                    </tr>-->
                     </thead>
                     <tbody>
 
@@ -84,7 +77,6 @@
                 </table>
             </div>
 
-        </div>
 
         <div class="row">
             <div class="col" id="errors" class="error-msg"></div>
@@ -94,6 +86,7 @@
             <div class="col">
                 <div id="plot"></div>
             </div>
+        </div>
         </div>
 
         <div class="modal fade" id="player-modal" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true">
