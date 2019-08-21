@@ -378,8 +378,8 @@ function addMuxingRow(muxing_type, bitrate, drm_type, urls) {
 
     muxingTable.row.add([
         muxing_type,
-        drm_type ? drm_type : "",
-        bitrate,
+        drm_type ? drm_type : "-",
+        bitrate ? parseInt(bitrate) : "-",
         urls.outputType,
         urls.host,
         urlTable.prop('outerHTML')]
