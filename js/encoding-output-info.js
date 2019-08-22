@@ -1,9 +1,9 @@
 const apiKey = getParameterByName('apiKey');
-const encodingId = getParameterByName('encodingId');
 const bitmovinApi = window['bitmovin-api-sdk'].default({apiKey: apiKey, debug: true});
 
 let player;
 let bmTables = {
+    encodings: undefined,
     muxings: undefined,
     streams: undefined,
     manifests: undefined
@@ -420,15 +420,12 @@ function getCodecEndpointFromClassName(classname) {
 // === DOM functions
 
 function addEncodingRow(encoding) {
-    let newRow = $("<tr>");
-    let cols = "";
+    let row = {
+        "encodingname": encoding.name,
+        "status": encoding.status
+    };
 
-    cols += `<td class="copy-me">${encoding.name}</td>`;
-    cols += `<td class="copy-me">${encoding.id}</td>`;
-    cols += `<td>${encoding.status}</td>`;
-
-    newRow.append(cols);
-    $("table#encodings").append(newRow);
+    bmTables.encodings.row.add(row).draw()
 }
 
 function addMuxingRow(muxing_type, muxing_id, bitrate, drm_type, drm_id, urls, streams, json) {
@@ -467,6 +464,45 @@ function addMuxingRow(muxing_type, muxing_id, bitrate, drm_type, drm_id, urls, s
     //setTimeout(function(){ muxingTable.draw(); }, 2000);
 }
 
+function addRefLinks(arrayOfIds) {
+    let links = arrayOfIds.join("<br/>");
+    let refs = arrayOfIds.join(",");
+
+    let button = `<button type="button" class="btn btn-xs btn-info follow-ref" data-ref="${refs}">show</button>`;
+
+    return `${links}<br/>${button}`;
+}
+
+function hideManifestTable() {
+    $("table#manifests").hide();
+}
+
+function createPlayerButton(manifest_type, streamingUrl) {
+    let button = $('<button type="button" class="btn btn-xs btn-primary btn-start-play">play</button>');
+    button.data('streamType', manifest_type);
+    button.data('streamUrl', streamingUrl);
+    return button
+}
+
+function createLinkButton(name, url) {
+    return $(`<a class="btn btn-xs btn-secondary" href="${url}" target="_blank">${name}</a>`);
+}
+
+const showLoader = () => {
+    $('.loader').show()
+};
+const hideLoader = () => {
+    $('.loader').hide()
+};
+
+// === DataTables Functions
+
+function resetTables() {
+    Object.keys(bmTables).forEach(tbname => {
+        bmTables[tbname].clear().draw()
+    })
+}
+
 function addStreamRow(stream_id, stream_mode, codec_type, codec_label, bitrate, json_stream, json_codec) {
     let row = {
         "streamid": stream_id,
@@ -481,19 +517,6 @@ function addStreamRow(stream_id, stream_mode, codec_type, codec_label, bitrate, 
     bmTables.streams.row.add(row).draw();
     // hack suggested at https://datatables.net/forums/discussion/comment/156646#Comment_156646 to avoid race condition
     //setTimeout(function(){ streamTable.draw(); }, 3000);
-}
-
-function addRefLinks(arrayOfIds) {
-    let links = arrayOfIds.join("<br/>");
-    let refs = arrayOfIds.join(",");
-
-    let button = `<button type="button" class="btn btn-xs btn-info follow-ref" data-ref="${refs}">show</button>`;
-
-    return `${links}<br/>${button}`;
-}
-
-function hideManifestTable() {
-    $("table#manifests").hide();
 }
 
 function addManifestRow(manifest_type, manifest_id, urls) {
@@ -536,26 +559,6 @@ function addUrlRow(title, url, actions) {
 
     return newRow;
 }
-
-function createPlayerButton(manifest_type, streamingUrl) {
-    let button = $('<button type="button" class="btn btn-xs btn-primary btn-start-play">play</button>');
-    button.data('streamType', manifest_type);
-    button.data('streamUrl', streamingUrl);
-    return button
-}
-
-function createLinkButton(name, url) {
-    return $(`<a class="btn btn-xs btn-secondary" href="${url}" target="_blank">${name}</a>`);
-}
-
-const showLoader = () => {
-    $('.loader').show()
-};
-const hideLoader = () => {
-    $('.loader').hide()
-};
-
-// === DataTables Functions
 
 function dataTable_bitrate(data, type, row, meta) {
     if (type === "sort" || type === 'type') {
@@ -721,11 +724,37 @@ $(document).on('click', '.follow-ref-muxing', function(event) {
     }, 500);
 });
 
+$(document).on('click', '#fetchEncoding', function(event) {
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+    resetTables();
+    let encodingId = $('#inputEncodingId').val();
+    processEncoding(encodingId);
+})
+
 $(document).ready(function () {
     let divTest = $('#test');
     divTest.html(apiKey);
 
+    bmTables.encodings = $('#encodings').DataTable({
+        dom: "t",
+        ordering: true,
+        paging: false,
+        columns: [
+            {
+                data: 'encodingname',
+                title: 'Encoding',
+                className: 'copy-me'
+            },
+            {
+                data: 'status',
+                title: 'Status'
+            }
+        ]
+    });
+
     bmTables.manifests = $('#manifests').DataTable({
+        dom: 'ift',
         ordering: true,
         paging: false,
         columns: [
@@ -759,6 +788,7 @@ $(document).ready(function () {
     });
 
     bmTables.muxings = $('#muxings').DataTable( {
+        dom: 'ift',
         ordering: true,
         orderFixed: [[0, "asc"]],
         order: [[ 1, "asc" ],[ 2, "desc" ]],
@@ -846,6 +876,7 @@ $(document).ready(function () {
     });
 
     bmTables.streams = $('#streams').DataTable({
+        dom: 'ift',
         ordering: true,
         orderFixed: [[0, "asc"]],
         order: [[3, "desc"]],
@@ -924,7 +955,11 @@ $(document).ready(function () {
         }
     });
 
+    const encodingId = getParameterByName('encodingId');
+    if (encodingId) {
+        $('#inputEncodingId').val(encodingId);
     processEncoding(encodingId);
+    }
 
     const config = {
         key: 'a973bb60-98d2-4404-8b45-b9f092f3d08d',

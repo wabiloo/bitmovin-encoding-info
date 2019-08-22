@@ -9,7 +9,7 @@ body {
 .container-fluid {
     padding-left: 50px;
     padding-right: 50px;
-    padding-top: 20px;
+    padding-top: 70px;
     font-size: 90%;
 }
 
@@ -103,4 +103,10 @@ table.hidden-columns tr:first-child th {
 
 .more:before {
     top: 16px !important;
+}
+span.help {
+    font-style: italic;
+    font-size: 90%;
+    color: darkgreen;
+    padding-right: 20px;
 }
