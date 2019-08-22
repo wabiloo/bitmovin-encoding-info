@@ -6,6 +6,9 @@ let player;
 let muxingTable;
 let streamTable;
 
+numeral.zeroFormat('N/A');
+numeral.nullFormat('N/A');
+
 function getParameterByName(name, url) {
     if (!url) url = window.location.href;
     name = name.replace(/[\[\]]/g, '\\$&');
@@ -35,7 +38,19 @@ async function fetchStreamInformation(encodingId) {
     streams.items.forEach(async function(stream) {
         console.log("Partial stream:", stream);
 
-        addStreamRow(stream.id, stream.codecConfigId, stream.bitrate)
+        const codecType = await getCodecConfigurationType(stream.codecConfigId);
+        console.log("Codec Type: ", codecType);
+        const codecConfig = await getCodecConfigurationDetails(stream.codecConfigId, codecType.type);
+        console.log("Codec: ", codecConfig);
+
+        addStreamRow(
+            stream.id,
+            stream.mode,
+            getCodecNameFromClass(codecConfig.constructor.name),
+            computeCodecConfigName(codecConfig),
+            codecConfig.bitrate,
+            JSON.stringify(codecConfig, null, 2)
+        )
     })
 }
 
@@ -72,16 +87,6 @@ async function fetchMuxingOutputInformation(encodingId) {
         });
         console.log(muxingDrms.items)
     });
-
-    console.log(allMuxings.length);
-    // Object.values(allMuxings).forEach(muxingInfo => {
-    //     if (muxingInfo.drm) {
-    //         addMuxingRow(getMuxingNameFromClass(muxingInfo.muxing.constructor.name), muxingInfo.muxing.avgBitrate, null, muxingInfo.urls)
-    //     } else {
-    //         addMuxingRow(getMuxingNameFromClass(muxingInfo.muxing.constructor.name), muxingInfo.muxing.avgBitrate, muxingInfo.drm.constructor.name, muxingInfo.urls)
-    //     }
-    // })
-
 }
 
 async function processMuxingEncodingOutput(muxingOutput, muxing, streams) {
@@ -112,7 +117,7 @@ async function processMuxingDrmEncodingOutput(drmOutput, muxing, drm, streams) {
     addMuxingRow(getMuxingNameFromClass(muxing.constructor.name), muxing.avgBitrate, getDrmNameFromClass(drm.constructor.name), urls, streams);
 
     return {
-        muxing: drm,
+        muxing: muxing,
         urls: urls,
         drm: drm
     };
@@ -148,6 +153,26 @@ async function processManifestEncodingOutput(manifestOutput, manifest) {
     const urls = await computeUrls(manifestOutput.outputId, manifestOutput.outputPath, manifestName);
 
     addManifestRow(manifest.type, urls)
+}
+
+// === Codec naming
+
+function computeCodecConfigName(codecConfig) {
+    let mediaEndpointPath = getMediaTypeFromClassName(codecConfig.constructor.name);
+    let codecLabel = getCodecNameFromClass(codecConfig.constructor.name);
+
+    let basename = `${codecLabel} ${numeral(codecConfig.bitrate).format('0b')}`;
+
+    switch (mediaEndpointPath) {
+        case "audio":
+            return `${basename} ChannelLayout.${codecConfig.channelLayout}`;
+            break;
+        case "video":
+            let resolution = codecConfig.width || codecConfig.height ? codecConfig.width +'x'+ codecConfig.height : "";
+            return `${basename} ${resolution}`;
+        default:
+            return "(not handled by this tool correctly)";
+    }
 }
 
 // === Compile URLs
@@ -260,7 +285,6 @@ function getStreamsForEncodingId(encodingId) {
     return bitmovinApi.encoding.encodings.streams.list(encodingId)
 }
 
-
 function getDashManifestsForEncodingId(encodingId) {
     return bitmovinApi.encoding.manifests.dash.list(q => q.encodingId(encodingId));
 }
@@ -277,7 +301,12 @@ function getOutputType(outputId) {
     return bitmovinApi.encoding.outputs.type.get(outputId)
 }
 
+function getCodecConfigurationType(configurationId) {
+    return bitmovinApi.encoding.configurations.type.get(configurationId)
+}
+
 function getOutput(outputId, outputType) {
+    // TODO - replace with generic mechanism
     if (outputType === "S3") {
         return bitmovinApi.encoding.outputs.s3.get(outputId);
     } else if (outputType === "GCS") {
@@ -287,6 +316,17 @@ function getOutput(outputId, outputType) {
 
 function getPartialStreamsFromMuxing(muxing) {
     return muxing.streams.map(muxingstream => muxingstream.streamId )
+}
+
+function getCodecConfigurationDetails(configurationId, codecType) {
+    let className = bitmovinApi.CodecConfiguration.typeMap[codecType];
+    let mediaEndpointPath = getMediaTypeFromClassName(className);
+    let codecEndpointPath = getCodecEndpointFromClassName(className);
+    try {
+        return bitmovinApi.encoding.configurations[mediaEndpointPath][codecEndpointPath].get(configurationId);
+    } catch (e) {
+        console.error("Codec configuration type not recognised or handled: " + className)
+    }
 }
 
 // === Bitmovin Endpoint and Object name remapping
@@ -303,6 +343,10 @@ function getDrmNameFromClass(classname) {
     return getObjectNameFromClass(bitmovinApi.Drm.typeMap, classname)
 }
 
+function getCodecNameFromClass(classname) {
+    return getObjectNameFromClass(bitmovinApi.CodecConfiguration.typeMap, classname)
+}
+
 function getObjectNameFromClass(object, classname) {
     return Object.keys(object).find(key => object[key] === classname);
 }
@@ -316,6 +360,21 @@ function getMuxingEndpointFromClassName(classname) {
 function getDrmEndpointFromClassName(classname) {
     classname = classname.replace("Drm", "");
     classname = classname.replace("Encryption", "");
+    classname = classname.toLowerCase();
+    return classname
+}
+
+function getMediaTypeFromClassName(classname) {
+    if (classname.includes('Audio'))
+        return "audio";
+    if (classname.includes("Video"))
+        return "video";
+}
+
+function getCodecEndpointFromClassName(classname) {
+    classname = classname.replace("Configuration", "");
+    classname = classname.replace("Video", "");
+    classname = classname.replace("Audio", "");
     classname = classname.toLowerCase();
     return classname
 }
@@ -370,18 +429,19 @@ function addMuxingRow(muxing_type, bitrate, drm_type, urls, streams) {
     setTimeout(function(){ muxingTable.draw(); }, 2000);
 }
 
-function addStreamRow(stream_id, codec_type, bitrate) {
+function addStreamRow(stream_id, stream_mode, codec_type, codec_label, bitrate, json) {
     let row = {
         "stream": stream_id,
+        "mode": stream_mode,
         "codec": codec_type,
+        "label": codec_label,
         "bitrate": bitrate,
-        "width": "1",
-        "height": "2"
+        "codecinfo": `<pre><code>${json}</code></pre>`
     };
 
     streamTable.row.add(row);
     // hack suggested at https://datatables.net/forums/discussion/comment/156646#Comment_156646 to avoid race condition
-    setTimeout(function(){ streamTable.draw(); }, 2000);
+    setTimeout(function(){ streamTable.draw(); }, 3000);
 }
 
 function hideManifestTable() {
@@ -612,11 +672,13 @@ $(document).ready(function () {
 
     streamTable = $('#streams').DataTable( {
         ordering: true,
-        order: [[ 1, "asc" ]],
+        order: [[ 4, "desc" ]],
         paging: false,
         columns: [
             { data: "stream", title: "Stream" },
+            { data: "mode", title: "Mode", defaultContent: "-" },
             { data: "codec", title: "Codec" },
+            { data: "label", title: "Codec Info" },
             {
                 data: "bitrate",
                 title: "Bitrate",
@@ -624,15 +686,28 @@ $(document).ready(function () {
                 type: 'number',
                 render: dataTable_bitrate
             },
-            { data: "width", title: "Width" },
-            { data: "height", title: "Height" }
+            {
+                data: null,
+                title: "More",
+                // a column just for the button controls
+                className: 'control codecinfo',
+                orderable: false,
+                defaultContent: '',
+            },
+            {
+                data: "codecinfo",
+                title: "Codec Configuration",
+                // controls DataTables() responsive and force a child row
+                className: "none"
+            }
         ],
         rowGroup: {
             dataSrc: 'codec'
         },
-        rowCallback: function( row, data, index ) {
-            if (!data.bitrate) {
-                $('td', row).css('color', 'lightgray');
+        responsive: {
+            details: {
+                type: 'column',
+                target: '.codecinfo'  // jQuery selector as per doc - https://datatables.net/forums/discussion/57793/issue-with-using-responsive-and-a-last-column#latest
             }
         }
     });

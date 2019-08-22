@@ -55,3 +55,7 @@ table.urls tr {
 table.urls th {
     width: 6em;
 }
+.control:before {
+    font-size: 150%;
+    line-height: 16px !important;
+}
