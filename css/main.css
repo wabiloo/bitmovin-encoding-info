@@ -104,6 +104,7 @@ table.hidden-columns tr:first-child th {
 .more:before {
     top: 16px !important;
 }
+
 span.help {
     font-style: italic;
     font-size: 90%;

@@ -478,9 +478,9 @@ function hideManifestTable() {
 }
 
 function createPlayerButton(manifest_type, streamingUrl) {
-    let button = $('<button type="button" class="btn btn-xs btn-primary btn-start-play">play</button>');
-    button.data('streamType', manifest_type);
-    button.data('streamUrl', streamingUrl);
+    let button = `<button type="button" class="btn btn-xs btn-primary btn-start-play" data-streamType="${manifest_type}" data-streamUrl="${streamingUrl}">play</button>`;
+    // button.data('streamType', manifest_type);
+    // button.data('streamUrl', streamingUrl);
     return button
 }
 
@@ -631,8 +631,8 @@ $(document).on('click', '.btn-start-play', function(event) {
 
     let btn = $(this);
 
-    let stream = btn.data('streamUrl');
-    let streamType = btn.data('streamType');
+    let stream = btn.data('streamurl');
+    let streamType = btn.data('streamtype');
 
     loadPlayer(streamType, stream)
 });
@@ -958,7 +958,7 @@ $(document).ready(function () {
     const encodingId = getParameterByName('encodingId');
     if (encodingId) {
         $('#inputEncodingId').val(encodingId);
-    processEncoding(encodingId);
+        processEncoding(encodingId);
     }
 
     const config = {
@@ -970,7 +970,6 @@ $(document).ready(function () {
         }
     };
 
-    player = new bitmovin.player.Player(container, config);
     let container = document.getElementById('test-player');
-
+    player = new bitmovin.player.Player(container, config);
 });
