@@ -9,6 +9,8 @@ let bmTables = {
     manifests: undefined
 };
 
+let mapMuxingsToStreams = {};
+
 numeral.zeroFormat('N/A');
 numeral.nullFormat('N/A');
 
@@ -52,6 +54,7 @@ async function fetchStreamInformation(encodingId) {
             getCodecNameFromClass(codecConfig.constructor.name),
             computeCodecConfigName(codecConfig),
             codecConfig.bitrate,
+            JSON.stringify(stream, null, 2),
             JSON.stringify(codecConfig, null, 2)
         )
     })
@@ -64,7 +67,9 @@ async function fetchMuxingOutputInformation(encodingId) {
     muxings.items.forEach(async function(muxing)  {
         console.log("Partial muxing:", muxing);
 
-        let streams = getStreamIsFromMuxing(muxing);
+        let streams = getStreamIdsFromMuxing(muxing);
+        // record for later use
+        mapMuxingsToStreams[muxing.id] = streams;
 
         // TODO - determine whether the partial vs full representation are different (and therefore whether this additional call is required)
         await getMuxingDetails(encodingId, muxing).then(fullmuxing => {
@@ -107,7 +112,8 @@ async function processMuxingEncodingOutput(muxingOutput, muxing, streams) {
         null,
         null,
         urls,
-        streams
+        streams,
+        JSON.stringify(muxing, null, 2)
     );
 
     return {
@@ -132,7 +138,8 @@ async function processMuxingDrmEncodingOutput(drmOutput, muxing, drm, streams) {
         getDrmNameFromClass(drm.constructor.name),
         drm.id,
         urls,
-        streams
+        streams,
+        JSON.stringify(codecConfig, null, 2)
     );
 
     return {
@@ -293,6 +300,15 @@ function getMuxingDrmDetails(encoding, muxing, drm) {
     return bitmovinApi.encoding.encodings.muxings[muxingEndpointPath].drm[drmEndpointPath].get(encodingId, muxing.id, drm.id)
 }
 
+function getMuxingIdsForStreamId(streamId) {
+    let muxings = []
+    for (let [key, value] of Object.entries(mapMuxingsToStreams)) {
+        if (value.includes(streamId))
+            muxings.push(key);
+    }
+    return muxings
+}
+
 function isSegmentedMuxing(muxing) {
     return (muxing instanceof bitmovinApi.Fmp4Muxing
         || muxing instanceof bitmovinApi.TsMuxing
@@ -333,7 +349,7 @@ function getOutput(outputId, outputType) {
     }
 }
 
-function getStreamIsFromMuxing(muxing) {
+function getStreamIdsFromMuxing(muxing) {
     return muxing.streams.map(muxingstream => muxingstream.streamId )
 }
 
@@ -415,8 +431,8 @@ function addEncodingRow(encoding) {
     $("table#encodings").append(newRow);
 }
 
-function addMuxingRow(muxing_type, muxing_id, bitrate, drm_type, drm_id, urls, streams) {
-    let urlTable = $('<table class="table table-sm table-hover table-borderless urls"></table>');
+function addMuxingRow(muxing_type, muxing_id, bitrate, drm_type, drm_id, urls, streams, json) {
+    let urlTable = $('<table class="table table-sm table-hover urls"></table>');
     let urlTableBody = $('<tbody>');
 
     urlTableBody.append(addUrlRow('path', urls.outputPath));
@@ -442,7 +458,8 @@ function addMuxingRow(muxing_type, muxing_id, bitrate, drm_type, drm_id, urls, s
         "output": urls.outputType,
         "host": urls.host,
         "urls": urlTable.prop('outerHTML'),
-        "streams": addRefLinks(streams)
+        "streams": addRefLinks(streams),
+        "json": `<pre><code>${json}</code></pre>`
     };
 
     bmTables.muxings.row.add(row).draw();
@@ -450,14 +467,15 @@ function addMuxingRow(muxing_type, muxing_id, bitrate, drm_type, drm_id, urls, s
     //setTimeout(function(){ muxingTable.draw(); }, 2000);
 }
 
-function addStreamRow(stream_id, stream_mode, codec_type, codec_label, bitrate, json) {
+function addStreamRow(stream_id, stream_mode, codec_type, codec_label, bitrate, json_stream, json_codec) {
     let row = {
         "streamid": stream_id,
         "mode": stream_mode,
         "codec": codec_type,
         "label": codec_label,
         "bitrate": bitrate,
-        "codecinfo": `<pre><code>${json}</code></pre>`
+        "jsonstream": `<pre><code>${json_stream}</code></pre>`,
+        "jsoncodec": `<pre><code>${json_codec}</code></pre>`
     };
 
     bmTables.streams.row.add(row).draw();
@@ -479,18 +497,7 @@ function hideManifestTable() {
 }
 
 function addManifestRow(manifest_type, manifest_id, urls) {
-    let newRow = $("<tr>");
-    let cols = "";
-
-    cols += `<th scope='row'>${manifest_type}</th>`;
-    cols += `<td class="copy-me">${manifest_id}</td>`;
-    cols += `<td>${urls.outputType}</td>`;
-    cols += `<td>${urls.host}</td>`;
-
-    newRow.append(cols);
-
-    let urlCol = $("<td>");
-    let urlTable = $('<table class="table table-sm table-hover table-borderless urls"></table>');
+    let urlTable = $('<table class="table table-sm table-hover urls"></table>');
     let urlTableBody = $('<tbody>');
 
     urlTableBody.append(addUrlRow('path', urls.outputPath));
@@ -498,10 +505,16 @@ function addManifestRow(manifest_type, manifest_id, urls) {
     urlTableBody.append(addUrlRow('streaming', urls.streamingUrl, [createPlayerButton(manifest_type, urls.streamingUrl)]));
 
     urlTable.append(urlTableBody);
-    urlCol.append(urlTable);
-    newRow.append(urlCol);
 
-    $("table#manifests").append(newRow);
+    let row = {
+        "manifestid": manifest_id,
+        "manifest": manifest_type,
+        "output": urls.outputType,
+        "host": urls.host,
+        "urls": urlTable.prop('outerHTML')
+    };
+
+    bmTables.manifests.row.add(row).draw();
 }
 
 function addUrlRow(title, url, actions) {
@@ -552,7 +565,11 @@ function dataTable_bitrate(data, type, row, meta) {
     }
 }
 
-function renderHiddenColumns ( api, rowIdx, columns ) {
+function dataTable_addLinkToMuxings(data, type, row, meta) {
+    return `<button type="button" class="btn btn-xs btn-info follow-ref-muxing" data-streamid="${data}">show</button>`;
+}
+
+function dataTable_renderHiddenColumns(api, rowIdx, columns ) {
     var data = $.map( columns, function ( col, i ) {
         return col.hidden ?
             '<tr data-dt-row="'+col.rowIndex+'" data-dt-column="'+col.columnIndex+'">'+
@@ -563,7 +580,7 @@ function renderHiddenColumns ( api, rowIdx, columns ) {
     } ).join('');
 
     return data ?
-        $('<table class="hidden-fields"/>').append( data ) :
+        $('<table class="hidden-columns"/>').append( data ) :
         false;
 }
 
@@ -676,6 +693,30 @@ $(document).on('click', '.follow-ref', function(event) {
         row.addClass('highlight');
         setTimeout(() => {
             row.removeClass('highlight');
+        }, 2500);
+    }, 500);
+});
+
+
+$(document).on('click', '.follow-ref-muxing', function(event) {
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+
+    let streamId = $(this).first().data('streamid');
+    let muxingIds = getMuxingIdsForStreamId(streamId);
+
+    let classes = muxingIds.map(g => '.'+g).join(',');
+
+    let row = $(classes);
+
+    $('html, body').animate({
+        scrollTop: (row.first().offset().top - 70)
+    },500);
+
+    setTimeout(() => {
+        row.addClass('highlight');
+        setTimeout(() => {
+            row.removeClass('highlight');
         }, 1500);
     }, 500);
 });
@@ -683,6 +724,39 @@ $(document).on('click', '.follow-ref', function(event) {
 $(document).ready(function () {
     let divTest = $('#test');
     divTest.html(apiKey);
+
+    bmTables.manifests = $('#manifests').DataTable({
+        ordering: true,
+        paging: false,
+        columns: [
+            {
+                data: 'manifest',
+                title: 'Manifest',
+            },
+            {
+                data: 'manifestid',
+                title: "Id",
+                className: "copy-me"
+            },
+            {
+                data: 'output',
+                title: 'Output'
+            },
+            {
+                data: 'host',
+                title: 'Host',
+                className: "copy-me"
+            },
+            {
+                data: "urls",
+                title: "URLs",
+                orderable: false
+            }
+        ],
+        rowCallback: function( row, data, index ) {
+            $(row).addClass(data.manifestid);
+        }
+    });
 
     bmTables.muxings = $('#muxings').DataTable( {
         ordering: true,
@@ -693,7 +767,7 @@ $(document).ready(function () {
             {
                 data: "muxing",
                 title: "Muxing",
-                orderable: false
+                orderable: false,
             },
             {
                 data: "drm",
@@ -712,7 +786,8 @@ $(document).ready(function () {
             },
             {
                 data: "host",
-                title: "Host"
+                title: "Host",
+                className: "copy-me"
             },
             {
                 data: null,
@@ -744,6 +819,12 @@ $(document).ready(function () {
                 className: "none",
                 width: "50px"
             },
+            {
+                data: "json",
+                title: "Muxing Configuration",
+                // controls DataTables() responsive and force a child row
+                className: "none copy-me"
+            }
         ],
         rowGroup: {
             dataSrc: 'muxing'
@@ -751,7 +832,7 @@ $(document).ready(function () {
         responsive: {
             details: {
                 type: 'column',
-                renderer: renderHiddenColumns,
+                renderer: dataTable_renderHiddenColumns,
                 target: '.more'  // jQuery selector as per doc - https://datatables.net/forums/discussion/57793/issue-with-using-responsive-and-a-last-column#latest
             }
         },
@@ -773,7 +854,7 @@ $(document).ready(function () {
             {
                 data: "codec",
                 title: "Codec",
-                orderable: false
+                orderable: false,
             },
             {
                 data: "mode",
@@ -782,8 +863,9 @@ $(document).ready(function () {
             },
             {
                 data: "label",
-                title: "Codec Info",
-                width: "250px"
+                title: "Codec Summary",
+                width: "250px",
+                className: "copy-me"
             },
             {
                 data: "bitrate",
@@ -807,11 +889,25 @@ $(document).ready(function () {
                 className: "none copy-me"
             },
             {
-                data: "codecinfo",
+                data: "streamid",
+                title: "Muxings",
+                className: "none",
+                render: dataTable_addLinkToMuxings,
+                defaultContent: '-'
+            },
+            {
+                data: "jsoncodec",
                 title: "Codec Configuration",
                 // controls DataTables() responsive and force a child row
                 className: "none copy-me"
+            },
+            {
+                data: "jsonstream",
+                title: "Stream Configuration",
+                // controls DataTables() responsive and force a child row
+                className: "none copy-me"
             }
+
         ],
         rowGroup: {
             dataSrc: 'codec'
@@ -819,7 +915,7 @@ $(document).ready(function () {
         responsive: {
             details: {
                 type: 'column',
-                renderer: renderHiddenColumns,
+                renderer: dataTable_renderHiddenColumns,
                 target: '.more'  // jQuery selector as per doc - https://datatables.net/forums/discussion/57793/issue-with-using-responsive-and-a-last-column#latest
             }
         },

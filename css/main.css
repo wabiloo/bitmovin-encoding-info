@@ -33,6 +33,18 @@ a.anchor {
     font-size: 80%;
 }
 
+h2 {
+    border-top: 2px solid coral;
+    font-size: 16px;
+    text-align: left;
+    text-transform: uppercase;
+    padding-top: 10px
+}
+
+.dataTables_wrapper {
+    margin-bottom: 20px;
+}
+
 table.dataTable td, table.dataTable th {
     padding: 4px 4px;
 }
@@ -42,6 +54,10 @@ table.dataTable tbody td, table.dataTable tbody th {
 }
 table.dataTable thead td, table.dataTable thead th {
     padding: 10px 6px;
+}
+
+tr.dtrg-group {
+    font-weight: bold;
 }
 
 tr.dtrg-level-0 {
@@ -76,4 +92,15 @@ table tr.highlight {
 a.follow-ref {
     color: blue;
     cursor: pointer;
+}
+
+table.urls tr:first-child td,
+table.urls tr:first-child th,
+table.hidden-columns tr:first-child td,
+table.hidden-columns tr:first-child th {
+    border-top: none !important;
+}
+
+.more:before {
+    top: 16px !important;
 }
