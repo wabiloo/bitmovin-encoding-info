@@ -3,8 +3,11 @@ const encodingId = getParameterByName('encodingId');
 const bitmovinApi = window['bitmovin-api-sdk'].default({apiKey: apiKey, debug: true});
 
 let player;
-let muxingTable;
-let streamTable;
+let bmTables = {
+    muxings: undefined,
+    streams: undefined,
+    manifests: undefined
+};
 
 numeral.zeroFormat('N/A');
 numeral.nullFormat('N/A');
@@ -61,7 +64,7 @@ async function fetchMuxingOutputInformation(encodingId) {
     muxings.items.forEach(async function(muxing)  {
         console.log("Partial muxing:", muxing);
 
-        let streams = getPartialStreamsFromMuxing(muxing);
+        let streams = getStreamIsFromMuxing(muxing);
 
         // TODO - determine whether the partial vs full representation are different (and therefore whether this additional call is required)
         await getMuxingDetails(encodingId, muxing).then(fullmuxing => {
@@ -97,7 +100,15 @@ async function processMuxingEncodingOutput(muxingOutput, muxing, streams) {
 
     const urls = await computeUrls(muxingOutput.outputId, muxingOutput.outputPath, fileName);
 
-    addMuxingRow(getMuxingNameFromClass(muxing.constructor.name), muxing.avgBitrate, null, urls, streams);
+    addMuxingRow(
+        getMuxingNameFromClass(muxing.constructor.name),
+        muxing.id,
+        muxing.avgBitrate,
+        null,
+        null,
+        urls,
+        streams
+    );
 
     return {
         muxing: muxing,
@@ -114,7 +125,15 @@ async function processMuxingDrmEncodingOutput(drmOutput, muxing, drm, streams) {
 
     const urls = await computeUrls(drmOutput.outputId, drmOutput.outputPath, fileName);
 
-    addMuxingRow(getMuxingNameFromClass(muxing.constructor.name), muxing.avgBitrate, getDrmNameFromClass(drm.constructor.name), urls, streams);
+    addMuxingRow(
+        getMuxingNameFromClass(muxing.constructor.name),
+        muxing.id,
+        muxing.avgBitrate,
+        getDrmNameFromClass(drm.constructor.name),
+        drm.id,
+        urls,
+        streams
+    );
 
     return {
         muxing: muxing,
@@ -152,7 +171,7 @@ async function processManifestEncodingOutput(manifestOutput, manifest) {
 
     const urls = await computeUrls(manifestOutput.outputId, manifestOutput.outputPath, manifestName);
 
-    addManifestRow(manifest.type, urls)
+    addManifestRow(manifest.type, manifest.id, urls)
 }
 
 // === Codec naming
@@ -314,7 +333,7 @@ function getOutput(outputId, outputType) {
     }
 }
 
-function getPartialStreamsFromMuxing(muxing) {
+function getStreamIsFromMuxing(muxing) {
     return muxing.streams.map(muxingstream => muxingstream.streamId )
 }
 
@@ -388,15 +407,15 @@ function addEncodingRow(encoding) {
     let newRow = $("<tr>");
     let cols = "";
 
-    cols += `<td class="copyme">${encoding.name}</td>`;
-    cols += `<td class="copyme">${encoding.id}</td>`;
+    cols += `<td class="copy-me">${encoding.name}</td>`;
+    cols += `<td class="copy-me">${encoding.id}</td>`;
     cols += `<td>${encoding.status}</td>`;
 
     newRow.append(cols);
     $("table#encodings").append(newRow);
 }
 
-function addMuxingRow(muxing_type, bitrate, drm_type, urls, streams) {
+function addMuxingRow(muxing_type, muxing_id, bitrate, drm_type, drm_id, urls, streams) {
     let urlTable = $('<table class="table table-sm table-hover table-borderless urls"></table>');
     let urlTableBody = $('<tbody>');
 
@@ -416,22 +435,24 @@ function addMuxingRow(muxing_type, bitrate, drm_type, urls, streams) {
 
     let row = {
         "muxing": muxing_type,
+        "muxingid": muxing_id,
+        "drmid": drm_id,
         "drm": drm_type ? drm_type : "-",
         "bitrate": bitrate,
         "output": urls.outputType,
         "host": urls.host,
         "urls": urlTable.prop('outerHTML'),
-        "streams": streams.join("<br/>")
+        "streams": addRefLinks(streams)
     };
 
-    muxingTable.row.add(row);
+    bmTables.muxings.row.add(row).draw();
     // hack suggested at https://datatables.net/forums/discussion/comment/156646#Comment_156646 to avoid race condition
-    setTimeout(function(){ muxingTable.draw(); }, 2000);
+    //setTimeout(function(){ muxingTable.draw(); }, 2000);
 }
 
 function addStreamRow(stream_id, stream_mode, codec_type, codec_label, bitrate, json) {
     let row = {
-        "stream": stream_id,
+        "streamid": stream_id,
         "mode": stream_mode,
         "codec": codec_type,
         "label": codec_label,
@@ -439,20 +460,30 @@ function addStreamRow(stream_id, stream_mode, codec_type, codec_label, bitrate, 
         "codecinfo": `<pre><code>${json}</code></pre>`
     };
 
-    streamTable.row.add(row);
+    bmTables.streams.row.add(row).draw();
     // hack suggested at https://datatables.net/forums/discussion/comment/156646#Comment_156646 to avoid race condition
-    setTimeout(function(){ streamTable.draw(); }, 3000);
+    //setTimeout(function(){ streamTable.draw(); }, 3000);
+}
+
+function addRefLinks(arrayOfIds) {
+    let links = arrayOfIds.join("<br/>");
+    let refs = arrayOfIds.join(",");
+
+    let button = `<button type="button" class="btn btn-xs btn-info follow-ref" data-ref="${refs}">show</button>`;
+
+    return `${links}<br/>${button}`;
 }
 
 function hideManifestTable() {
     $("table#manifests").hide();
 }
 
-function addManifestRow(manifest_type, urls) {
+function addManifestRow(manifest_type, manifest_id, urls) {
     let newRow = $("<tr>");
     let cols = "";
 
     cols += `<th scope='row'>${manifest_type}</th>`;
+    cols += `<td class="copy-me">${manifest_id}</td>`;
     cols += `<td>${urls.outputType}</td>`;
     cols += `<td>${urls.host}</td>`;
 
@@ -478,7 +509,7 @@ function addUrlRow(title, url, actions) {
     let cols = "";
 
     cols += `<th scope='row'>${title}</th>`;
-    cols += `<td class="copyme">${url}</td>`;
+    cols += `<td class="copy-me">${url}</td>`;
 
     newRow.append(cols);
 
@@ -521,6 +552,21 @@ function dataTable_bitrate(data, type, row, meta) {
     }
 }
 
+function renderHiddenColumns ( api, rowIdx, columns ) {
+    var data = $.map( columns, function ( col, i ) {
+        return col.hidden ?
+            '<tr data-dt-row="'+col.rowIndex+'" data-dt-column="'+col.columnIndex+'">'+
+            '<th>'+col.title+'</th> '+
+            '<td class="copy-me">'+col.data+'</td>'+
+            '</tr>' :
+            '';
+    } ).join('');
+
+    return data ?
+        $('<table class="hidden-fields"/>').append( data ) :
+        false;
+}
+
 // === Bitmovin Player functions
 
 function loadPlayer(streamType, stream) {
@@ -544,7 +590,7 @@ function loadPlayer(streamType, stream) {
             console.error('Unable to create player source for stream type:', streamType)
     }
 
-    $('.stream-info').html(`${streamType}:<br/> <span class="copyme">${stream}</span>`);
+    $('.stream-info').html(`${streamType}:<br/> <span class="copy-me">${stream}</span>`);
     $('#player-modal').modal('show');
 
     player.load(source).then(
@@ -579,7 +625,7 @@ $(document).on('hide.bs.modal', '#player-modal', function (e) {
 
 // === Main
 
-$(document).on('click', '.copyme', function(event) {
+$(document).on('click', '.copy-me', function(event) {
     event.stopPropagation();
     event.stopImmediatePropagation();
 
@@ -600,7 +646,7 @@ $(document).on('click', '.copyme', function(event) {
         span.classList.add('copied');
 
         setTimeout(() => {
-            span.textContent = original;
+            //span.textContent = original;
             span.classList.remove('copied');
         }, 1200);
     } catch(e) {
@@ -613,17 +659,46 @@ $(document).on('click', '.copyme', function(event) {
     }
 });
 
+$(document).on('click', '.follow-ref', function(event) {
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+
+    let guids = $(this).first().data('ref');
+    let classes = guids.split(',').map(g => '.'+g).join(',');
+
+    let row = $(classes);
+
+    $('html, body').animate({
+        scrollTop: (row.first().offset().top)
+    },500);
+
+    setTimeout(() => {
+        row.addClass('highlight');
+        setTimeout(() => {
+            row.removeClass('highlight');
+        }, 1500);
+    }, 500);
+});
+
 $(document).ready(function () {
     let divTest = $('#test');
     divTest.html(apiKey);
 
-    muxingTable = $('#muxings').DataTable( {
+    bmTables.muxings = $('#muxings').DataTable( {
         ordering: true,
-        order: [[ 0, "asc" ],[ 1, "asc" ],[ 2, "desc" ]],
+        orderFixed: [[0, "asc"]],
+        order: [[ 1, "asc" ],[ 2, "desc" ]],
         paging: false,
         columns: [
-            { data: "muxing", title: "Muxing" },
-            { data: "drm", title: "DRM" },
+            {
+                data: "muxing",
+                title: "Muxing",
+                orderable: false
+            },
+            {
+                data: "drm",
+                title: "DRM"
+            },
             {
                 data: "bitrate",
                 title: "Avg Bitrate",
@@ -631,13 +706,19 @@ $(document).ready(function () {
                 type: 'number',
                 render: dataTable_bitrate
             },
-            { data: "output", title: "Output" },
-            { data: "host", title: "Host" },
+            {
+                data: "output",
+                title: "Output"
+            },
+            {
+                data: "host",
+                title: "Host"
+            },
             {
                 data: null,
-                title: "Streams",
+                title: "More",
                 // a column just for the button controls
-                className: 'control streams',
+                className: 'control more',
                 orderable: false,
                 defaultContent: '',
             },
@@ -645,6 +726,16 @@ $(document).ready(function () {
                 data: "urls",
                 title: "URLs",
                 orderable: false
+            },
+            {
+                data: "muxingid",
+                title: "Muxing Id",
+                className: "none"
+            },
+            {
+                data: "drmid",
+                title: "DRM Id",
+                className: "none"
             },
             {
                 data: "streams",
@@ -655,50 +746,71 @@ $(document).ready(function () {
             },
         ],
         rowGroup: {
-            dataSrc: 'drm'
+            dataSrc: 'muxing'
         },
         responsive: {
             details: {
                 type: 'column',
-                target: '.streams'  // jQuery selector as per doc - https://datatables.net/forums/discussion/57793/issue-with-using-responsive-and-a-last-column#latest
+                renderer: renderHiddenColumns,
+                target: '.more'  // jQuery selector as per doc - https://datatables.net/forums/discussion/57793/issue-with-using-responsive-and-a-last-column#latest
             }
         },
         rowCallback: function( row, data, index ) {
+            $(row).addClass(data.muxingid);
+
             if (!data.bitrate) {
                 $('td', row).css('color', 'lightgray');
             }
         }
     });
 
-    streamTable = $('#streams').DataTable( {
+    bmTables.streams = $('#streams').DataTable({
         ordering: true,
-        order: [[ 4, "desc" ]],
+        orderFixed: [[0, "asc"]],
+        order: [[3, "desc"]],
         paging: false,
         columns: [
-            { data: "stream", title: "Stream" },
-            { data: "mode", title: "Mode", defaultContent: "-" },
-            { data: "codec", title: "Codec" },
-            { data: "label", title: "Codec Info" },
+            {
+                data: "codec",
+                title: "Codec",
+                orderable: false
+            },
+            {
+                data: "mode",
+                title: "Mode",
+                defaultContent: "-"
+            },
+            {
+                data: "label",
+                title: "Codec Info",
+                width: "250px"
+            },
             {
                 data: "bitrate",
                 title: "Bitrate",
                 defaultContent: "-",
                 type: 'number',
+                width: "80px",
                 render: dataTable_bitrate
             },
             {
                 data: null,
                 title: "More",
                 // a column just for the button controls
-                className: 'control codecinfo',
+                className: 'control more',
                 orderable: false,
                 defaultContent: '',
+            },
+            {
+                data: "streamid",
+                title: "Stream Id",
+                className: "none copy-me"
             },
             {
                 data: "codecinfo",
                 title: "Codec Configuration",
                 // controls DataTables() responsive and force a child row
-                className: "none"
+                className: "none copy-me"
             }
         ],
         rowGroup: {
@@ -707,8 +819,12 @@ $(document).ready(function () {
         responsive: {
             details: {
                 type: 'column',
-                target: '.codecinfo'  // jQuery selector as per doc - https://datatables.net/forums/discussion/57793/issue-with-using-responsive-and-a-last-column#latest
+                renderer: renderHiddenColumns,
+                target: '.more'  // jQuery selector as per doc - https://datatables.net/forums/discussion/57793/issue-with-using-responsive-and-a-last-column#latest
             }
+        },
+        rowCallback: function (row, data, index) {
+            $(row).addClass(data.streamid);
         }
     });
 

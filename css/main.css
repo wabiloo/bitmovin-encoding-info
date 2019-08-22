@@ -1,5 +1,9 @@
+body {
+    transition: background-color ease-in 1s;
+}
+
 .copied {
-    background-color: lightgreen;
+    background-color: #b2eeaa;
 }
 
 .container-fluid {
@@ -55,7 +59,21 @@ table.urls tr {
 table.urls th {
     width: 6em;
 }
+
 .control:before {
     font-size: 150%;
     line-height: 16px !important;
+}
+
+table tr {
+    transition: all 0.5s ease;
+}
+
+table tr.highlight {
+    background: #f9f98e !important;
+}
+
+a.follow-ref {
+    color: blue;
+    cursor: pointer;
 }
