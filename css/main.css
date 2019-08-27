@@ -63,6 +63,10 @@ tr.dtrg-group {
 tr.dtrg-level-0 {
     background-color: lightblue !important;
 }
+tr.dtrg-level-1 {
+    background-color: #c1ecfa !important;
+}
+
 
 table.urls {
     margin-bottom: 0px;

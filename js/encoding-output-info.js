@@ -48,15 +48,18 @@ async function fetchStreamInformation(encodingId) {
         const codecConfig = await getCodecConfigurationDetails(stream.codecConfigId, codecType.type);
         console.log("Codec: ", codecConfig);
 
-        addStreamRow(
-            stream.id,
-            stream.mode,
-            getCodecNameFromClass(codecConfig.constructor.name),
-            computeCodecConfigName(codecConfig),
-            codecConfig.bitrate,
-            JSON.stringify(stream, null, 2),
-            JSON.stringify(codecConfig, null, 2)
-        )
+        let row = {
+            "streamid": stream.id,
+            "mode": stream.mode,
+            "media": getMediaTypeFromClassName(codecConfig.constructor.name),
+            "codec": getCodecNameFromClass(codecConfig.constructor.name),
+            "label": computeCodecConfigName(codecConfig),
+            "bitrate": codecConfig.bitrate,
+            "jsonstream": `<pre><code>${JSON.stringify(stream, null, 2)}</code></pre>`,
+            "jsoncodec": `<pre><code>${JSON.stringify(codecConfig, null, 2)}</code></pre>`
+        };
+
+        addStreamRow(row);
     })
 }
 
@@ -503,18 +506,8 @@ function resetTables() {
     })
 }
 
-function addStreamRow(stream_id, stream_mode, codec_type, codec_label, bitrate, json_stream, json_codec) {
-    let row = {
-        "streamid": stream_id,
-        "mode": stream_mode,
-        "codec": codec_type,
-        "label": codec_label,
-        "bitrate": bitrate,
-        "jsonstream": `<pre><code>${json_stream}</code></pre>`,
-        "jsoncodec": `<pre><code>${json_codec}</code></pre>`
-    };
-
-    bmTables.streams.row.add(row).draw();
+function addStreamRow(row_info) {
+    bmTables.streams.row.add(row_info).draw();
     // hack suggested at https://datatables.net/forums/discussion/comment/156646#Comment_156646 to avoid race condition
     //setTimeout(function(){ streamTable.draw(); }, 3000);
 }
@@ -878,25 +871,32 @@ $(document).ready(function () {
     bmTables.streams = $('#streams').DataTable({
         dom: 'ift',
         ordering: true,
-        orderFixed: [[0, "asc"]],
-        order: [[3, "desc"]],
+        orderFixed: [[0, "asc"], [1, "asc"]],
+        order: [[4, "desc"]],
         paging: false,
         columns: [
+            {
+                data: "media",
+                title: "Media",
+                orderable: false,
+                className: "none"
+            },
             {
                 data: "codec",
                 title: "Codec",
                 orderable: false,
-            },
-            {
-                data: "mode",
-                title: "Mode",
-                defaultContent: "-"
+                className: "none"
             },
             {
                 data: "label",
                 title: "Codec Summary",
                 width: "250px",
                 className: "copy-me"
+            },
+            {
+                data: "mode",
+                title: "Mode",
+                defaultContent: "-"
             },
             {
                 data: "bitrate",
@@ -941,7 +941,7 @@ $(document).ready(function () {
 
         ],
         rowGroup: {
-            dataSrc: 'codec'
+            dataSrc: ['media','codec']
         },
         responsive: {
             details: {
