@@ -596,7 +596,7 @@ function loadPlayer(streamType, stream) {
         case 'SmoothStreamingManifest':
             source['smooth'] = stream;
             break;
-        case 'Mp4Muxing':
+        case 'MP4':
             source['progressive'] = stream;
             break;
         default:
