@@ -142,7 +142,7 @@ async function processMuxingDrmEncodingOutput(drmOutput, muxing, drm, streams) {
         drm.id,
         urls,
         streams,
-        JSON.stringify(codecConfig, null, 2)
+        JSON.stringify(muxing, null, 2)
     );
 
     return {
@@ -296,7 +296,7 @@ function getMuxingDrms(encodingId, muxing) {
     return bitmovinApi.encoding.encodings.muxings[muxingEndpointPath].drm.list(encodingId, muxing.id)
 }
 
-function getMuxingDrmDetails(encoding, muxing, drm) {
+function getMuxingDrmDetails(encodingId, muxing, drm) {
     let muxingEndpointPath = getMuxingEndpointFromClassName(muxing.constructor.name);
     let drmEndpointPath = getDrmEndpointFromClassName(drm.constructor.name);
 
