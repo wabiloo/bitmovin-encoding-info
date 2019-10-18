@@ -54,6 +54,8 @@ async function fetchStreamInformation(encodingId) {
             "media": getMediaTypeFromClassName(codecConfig.constructor.name),
             "codec": getCodecNameFromClass(codecConfig.constructor.name),
             "label": computeCodecConfigName(codecConfig),
+            "width": codecConfig.width,
+            "height": codecConfig.height,
             "bitrate": codecConfig.bitrate,
             "jsonstream": `<pre><code>${JSON.stringify(stream, null, 2)}</code></pre>`,
             "jsoncodec": `<pre><code>${JSON.stringify(codecConfig, null, 2)}</code></pre>`
@@ -896,6 +898,16 @@ $(document).ready(function () {
             {
                 data: "mode",
                 title: "Mode",
+                defaultContent: "-"
+            },
+            {
+                data: "width",
+                title: "Width",
+                defaultContent: "-"
+            },
+            {
+                data: "height",
+                title: "Height",
                 defaultContent: "-"
             },
             {
