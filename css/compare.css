@@ -17,21 +17,6 @@
     background-color: #f9fbff;
 }
 
-.nodiff {
-    color: #ababab;
-}
-.diff1 {
-    color: blueviolet;
-}
-.diff2 {
-    color: darkcyan;
-}
-.notapplicable {
-    background-color: #e8e8e8;
-}
-.highlight {
-    color: orange;
-}
 
 /*DEFAULT_PLOTLY_COLORS=['rgb(31, 119, 180)', 'rgb(255, 127, 14)',*/
 /*'rgb(44, 160, 44)', 'rgb(214, 39, 40)',*/
@@ -53,28 +38,60 @@
 }
 
 .encoding0 {
-    border-left: 8px solid rgb(31, 119, 180);;
-}
-.encoding1 {
-    border-left: 8px solid rgb(255, 127, 14);
-}
-.encoding2 {
-    border-left: 8px solid rgb(44, 160, 44);
-}
-
-.encoding0.diff {
+    border-color: rgb(31, 119, 180);
     background-color: rgba(31, 119, 180, 0.2);
 }
-.encoding1.diff {
+.encoding1 {
+    border-color: rgb(255, 127, 14);
     background-color: rgba(255, 127, 14, 0.2);
 }
-.encoding2.diff {
+.encoding2 {
+    border-color: rgb(44, 160, 44);
     background-color: rgba(44, 160, 44, 0.2);
 }
 
+.valuecell {
+    border-left-width: 2px;
+    border-left-style: solid;
+}
 
-.white {
-    background-color: white !important;
+.nodiff {
+    color: #ababab;
+    background: none;
+}
+.notapplicable {
+    background-color: #e8e8e8;
+}
+.highlight {
+    color: orange;
+}
+
+.diff {
+    border-left-width: 8px;
+}
+.groupdiff {
+    border-left-width: 4px;
+}
+
+.groupdiff, .margin.groupdiff {
+    background-color: lightgrey;
+}
+
+.count-headers td {
+    text-align: center;
+    color: blue;
+}
+.group-header {
+    background-color: darkgray;
+    color: white;
+}
+
+.margin {
+    background-color: white ;
+}
+.groupmargin {
+    background-color: darkgray !important;
+    border-left: 8px solid white;
 }
 
 .hide {

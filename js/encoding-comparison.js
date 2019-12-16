@@ -90,16 +90,10 @@ class Rendition {
     }
 
     fieldsFor(resourceType) {
-        switch (resourceType) {
-            case "encoding":
-                return this.encoding;
-            case "codec":
-                return this.codec;
-            case "muxing":
-                return this.muxing;
-            case "stream":
-                return this.stream;
+        if (!(resourceType in fieldDefs)) {
+            throwError(`Invalid resourceType ${resourceType}`)
         }
+        return this[resourceType];
     }
 
     valueForField(resourceType, field) {
@@ -114,8 +108,8 @@ class Rendition {
 }
 
 class RenditionSet {
-    constructor() {
-        this._renditions = []
+    constructor(arr = []) {
+        this._renditions = arr
     }
 
     add(rendition) {
@@ -142,7 +136,22 @@ class RenditionSet {
         return fieldSet
     }
 
-    canonicalPointers(filters) {
+    uniqueValuesForField(resourceType, field) {
+        let uniqueValues = _.uniqWith(
+            _.map(this.renditions, r => {
+                return r.valueForField(resourceType, field)
+            }),
+            _.isEqual
+        );
+        _.remove(uniqueValues, v => {
+            return v === null;
+            // return v === undefined || v === "" || v === null
+        });
+        return uniqueValues
+    }
+
+    canonicalPointers(filters, needsValue=true) {
+        let countPlaces = needsValue ? 3 : 2;
         if (_.isUndefined(filters) || filters === "") {
             filters = []
         }
@@ -159,13 +168,13 @@ class RenditionSet {
 
             let fc = f.split(":");
 
-            if (fc.length === 1) {
+            if (fc.length === countPlaces - 2) {
                 fc.unshift('type')
             }
-            if (fc.length === 2) {
+            if (fc.length === countPlaces - 1) {
                 fc.unshift('codec')
             }
-            if (fc.length !== 3) {
+            if (needsValue && fc.length !== 3) {
                 throwError(`Invalid filter "${fil}" - must be in the form resource:field:value`);
                 return result
             }
@@ -175,16 +184,20 @@ class RenditionSet {
                 return result
             }
             if (!this.collectFields(fc[0]).has(fc[1])) {
-                throwError(`Invalid field name "${fc[1]}" for resource type "${fc[0]}"`);
+                throwError(`Invalid field name "${fc[1]}" for resource type "${fc[0]}". Filter ignored.`);
                 return result
             }
 
             // accumulate values for similar filters
-            let existing = _.find(result, {0: fc[0], 1: fc[1]});
-            if (existing) {
-                existing[2].push(fc[2]);
+            if (needsValue) {
+                let existing = _.find(result, {0: fc[0], 1: fc[1]});
+                if (existing) {
+                    existing[2].push(fc[2]);
+                } else {
+                    result.push([fc[0], fc[1], [fc[2]]]);
+                }
             } else {
-                result.push([fc[0], fc[1], [fc[2]]]);
+                result.push([fc[0], fc[1]]);
             }
 
             return result
@@ -211,10 +224,59 @@ class RenditionSet {
             r => { return r.valueForField('codec', 'bitrate') }]
         ).reverse();
 
-        return rends;
+        groups = this.canonicalPointers(groups, false);
+        if (_.isEmpty(groups)) {
+            groups = [['codec', 'type']]
+        }
+        let groupedRends = _.groupBy(rends,
+            r => {
+                return renderValue(
+                    r.valueForField(groups[0][0], groups[0][1]),
+                    groups[0][1],
+                    groups[0][0])
+            }
+        );
+
+        return new GroupedRenditionSet(groupedRends, groups[0]);
+    }
+}
+
+class GroupedRenditionSet {
+    constructor(map = [], pointer) {
+        this._renditionMap = _.mapValues(map, g => {
+            return new RenditionSet(g)
+        });
+        this._groupPointer = pointer
     }
 
+    get groupField() {
+        return this._groupPointer
+    }
 
+    get renditionSets() {
+        return _.values(this._renditionMap)
+    }
+
+    get renditions() {
+        return _.flatMap(this._renditionMap, `renditions`);
+    }
+
+    entries() {
+        return _.entries(this._renditionMap)
+    }
+
+    collectFields(resourceType) {
+        return new Set(_.uniq(_.flatMap(this._renditionMap, rs => {
+            return Array.from(rs.collectFields(resourceType))
+        })));
+    }
+
+    uniqueValuesForField(resourceType, field) {
+        let values = _.flatMap(this._renditionMap, r => {
+            return r.uniqueValuesForField(resourceType, field)
+        });
+        return _.uniqWith(values, _.isEqual)
+    };
 }
 
 let allEncodings = [];
@@ -227,6 +289,9 @@ $(document).ready(function () {
 
     const filters = getParameterByName('filters');
     document.getElementById('simpleFilters').value = filters;
+
+    const groupby = getParameterByName('groupBy');
+    document.getElementById('simpleGroups').value = groupby;
 
     expandFieldDefs();
 
@@ -390,6 +455,7 @@ function encodingsChanged(event) {
 function filtersChanged(event) {
     let options = {
         'fieldFilter': document.getElementById('simpleFilters').value,
+        'groupBy': document.getElementById('simpleGroups').value,
         'hideFieldsWithoutDiff': document.getElementById('diffFieldsOnly').checked
     };
 
@@ -516,7 +582,7 @@ function displayRenditionTable(renditions, options) {
     table.classList.add('renditions');
     var tableBody = document.createElement('tbody');
 
-    let rends = renditions.filter(options['encodingFilter'] + options['fieldFilter']);
+    let rends = renditions.filter(options['encodingFilter'] + options['fieldFilter'], options['groupBy']);
 
     addRenditionHeader(tableBody, rends);
     addRenditionRowGroup(tableBody, rends, 'codec', options);
@@ -531,16 +597,35 @@ function displayRenditionTable(renditions, options) {
 function addRenditionHeader(tableBody, renditions) {
 
     let row = document.createElement('tr');
+    row.classList.add("count-headers");
     let header = document.createElement('th');
     header.appendChild(document.createTextNode("#"));
     row.appendChild(header);
     tableBody.appendChild(row);
 
-    for (let [i,r] of renditions.entries()) {
+    for (let [i,r] of renditions.renditions.entries()) {
         var cell = document.createElement('td');
         cell.setAttribute('colspan', 2);
         cell.appendChild(document.createTextNode(i));
         row.appendChild(cell);
+    }
+
+    let groupRow = document.createElement('tr');
+    let groupHeader = document.createElement('th');
+    groupHeader.appendChild(document.createTextNode("group"));
+    groupRow.appendChild(groupHeader);
+    tableBody.appendChild(groupRow);
+
+    for (const [groupkey, group] of renditions.entries()) {
+        let white = document.createElement('td');
+        white.classList.add("margin");
+        groupRow.appendChild(white);
+
+        var cell = document.createElement('td');
+        cell.classList.add('group-header');
+        cell.setAttribute('colspan', group.renditions.length*2-1);
+        cell.appendChild(document.createTextNode(renditions.groupField.join(':') + " = " + groupkey));
+        groupRow.appendChild(cell);
     }
 }
 
@@ -549,7 +634,7 @@ function addRenditionRowGroup(tableBody, renditions, resourceType, options) {
     let row = document.createElement('tr');
     row.classList.add('headerrow');
     let header = document.createElement('th');
-    header.setAttribute("colspan", renditions.length *2 + 1);
+    header.setAttribute("colspan", renditions.renditions.length *2 + 1);
     header.appendChild(document.createTextNode(resourceType));
     row.appendChild(header);
     tableBody.appendChild(row);
@@ -558,7 +643,7 @@ function addRenditionRowGroup(tableBody, renditions, resourceType, options) {
 }
 
 function addRenditionRowCells(tableBody, renditions, resourceType, options) {
-    fieldSet = allRenditions.collectFields(resourceType);
+    fieldSet = renditions.collectFields(resourceType);
     for (let [i, field] of Array.from(fieldSet).entries()) {
         // skip if field it to be ignored
         if (fieldDefs[resourceType]['ignore'].includes(field)) {
@@ -572,70 +657,79 @@ function addRenditionRowCells(tableBody, renditions, resourceType, options) {
         header.appendChild(document.createTextNode(field));
         row.appendChild(header);
 
-        // check if the value is the same across all renditions
-        let uniqueValues = _.uniqWith(
-            _.map(renditions, r => {
-                return r.valueForField(resourceType, field)
-            }),
-            _.isEqual
-        );
-        _.remove(uniqueValues, v => {
-            return v === undefined || v === "" || v === null
-        });
+        // check if the value is the same across all renditions (across all groups)
+        let uniqueValues = renditions.uniqueValuesForField(resourceType, field);
 
         if (uniqueValues.length <= 1 && options['hideFieldsWithoutDiff']) {
             continue;
         }
 
-        renditions.forEach(r => {
-            let val = r.valueForField(resourceType, field);
-            var cell = document.createElement('td');
+        for (const [groupkey, group] of renditions.entries()) {
+            for ([j,r] of group.renditions.entries()) {
+                {
+                    let uniqueGroupValues = group.uniqueValuesForField(resourceType, field);
+                    let val = r.valueForField(resourceType, field);
 
-            for (c of r.cssClasses) {
-                cell.classList.add(c);
+                    var white = document.createElement('td');
+                    white.classList.add("margin");
+                    if (j === 0) {
+                        white.classList.add("groupmargin");
+                    } else if (uniqueValues.length > 1 && uniqueGroupValues.length <= 1) {
+                        if (val !== null) {
+                            white.classList.add('groupdiff');
+                        }
+                    }
+                    row.appendChild(white);
+
+                    var cell = document.createElement('td');
+                    cell.classList.add('valuecell');
+
+                    for (c of r.cssClasses) {
+                        cell.classList.add(c);
+                    }
+
+                    // null = field not applicable to that particular rendition
+                    if (val === null) {
+                        cell.classList.add("notapplicable")
+                    } else {
+                        // color code diff
+                        if (uniqueGroupValues.length > 1) {
+                            cell.classList.add('diff');
+                        } else if (uniqueValues.length > 1) {
+                            cell.classList.add('groupdiff');
+                        } else {
+                            cell.classList.add('nodiff')
+                        }
+                    }
+
+                    // if there are 2 groups of values, highlight the difference
+                    if (renditions.length > 3 && uniqueValues.length === 2) {
+                        let pos = _.findIndex(uniqueValues, (v) => {
+                            return _.isEqual(v, val)
+                        });
+                        cell.classList.add('diff' + (pos + 1))
+                    }
+
+                    // if field is to be highlighted
+                    if (fieldDefs[resourceType]['highlight'].includes(field)) {
+                        cell.classList.add('highlight')
+                    }
+
+                    cell.appendChild(document.createTextNode(
+                        renderValue(val, field, resourceType)
+                    ));
+                    row.appendChild(cell);
+
+                }
             }
-
-            // null = field not applicable to that particular rendition
-            if (val === null) {
-                cell.classList.add("notapplicable")
-            }
-
-            // if all values are the same for all renditions, mute them
-            if (uniqueValues.length <= 1) {
-                cell.classList.add('nodiff')
-            } else {
-                cell.classList.add('diff');
-            }
-
-            // if there are 2 groups of values, highlight the difference
-            if (renditions.length > 3 && uniqueValues.length === 2) {
-                let pos = _.findIndex(uniqueValues, (v) => {
-                    return _.isEqual(v, val)
-                });
-                cell.classList.add('diff' + (pos + 1))
-            }
-
-            // if field is to be highlighted
-            if (fieldDefs[resourceType]['highlight'].includes(field)) {
-                cell.classList.add('highlight')
-            }
-
-            cell.appendChild(document.createTextNode(
-                renderValue(val, field, resourceType)
-            ));
-            row.appendChild(cell);
-
-            var white = document.createElement('td');
-            white.classList.add("margin");
-            row.appendChild(white)
-        });
+        }
 
         tableBody.appendChild(row);
     }
 }
 
 function renderValue(val, field, resourceType) {
-    if (val !== undefined && val !== null) {
+    if (val !== undefined && val !== null && val !== "undefined") {
         if (field in fieldDefs[resourceType]['transform']) {
             val = fieldDefs[resourceType]['transform'][field](val)
         }

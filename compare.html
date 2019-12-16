@@ -71,7 +71,14 @@
                     <div class="row mb-2">
                         <div class="form-inline w-100">
                             <input class="form-control col-9" type="text" id="simpleFilters" value=""/>
-                            <button class="btn btn-primary col-2" type="submit" id="applyFilters">apply</button>
+                        </div>
+                    </div>
+                    <div class="row">
+                        Group by
+                    </div>
+                    <div class="row mb-2">
+                        <div class="form-inline w-100">
+                            <input class="form-control col-9" type="text" id="simpleGroups" value=""/>
                         </div>
                     </div>
                     <div class="row">
@@ -82,6 +89,7 @@
                                     <label class="form-check-label" for="diffFieldsOnly">Show only fields with different values</label>
                                 </div>
                             </div>
+                            <button class="btn btn-primary" type="submit" id="applyFilters">apply</button>
                         </div>
                     </div>
                 </form>
@@ -129,9 +137,19 @@
                             will only show renditions that have an H264 or H265 codec, and an MP4 muxing type
                         </div>
 
-                        <h3>Highlights</h3>
-                        <p>Differences between renditions (after filters are applied) are shown with a coloured background
-                            that reflects what encoding the rendition belongs to.</p>
+                        <h3>Groups</h3>
+                        <p>You can also optionally get some grouping in the form of <code>resourceType:fieldName</code></p>
+                        <p>This will group the renditions for ease of comparison. By default, rendition grouping is done base on "codec:type"</p>
+
+                        <h3>Diff</h3>
+                        <p>Differences between renditions (after filters are applied) are higlighted in the following way.</p>
+                        <ul>
+                            <li>A coloured background (using the colour of the corresponding encoding) indicate that within the group,
+                                the values differ between renditions for that field
+                            </li>
+                            <li>A dark gray background (stretching across the group) indicate that the values for that field are the same within the group, but differ between groups</li>
+                            <li>If the value is the same across all the filtered renditions and across all groups, the value is displayed in greyed out text</li>
+                        </ul>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
