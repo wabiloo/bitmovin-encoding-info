@@ -135,10 +135,15 @@ class RenditionSet {
             filters = filters.split(",")
         }
 
-        //
+        // TODO - validate tuple better
         filters = _.reduce(filters, (result, f) => {
             f = _.trim(f);
+            if (_.isEmpty(f)) {
+                return result
+            }
+
             let fc = f.split(":");
+
             if (fc.length === 1) {
                 fc.unshift('type')
             }
@@ -146,7 +151,16 @@ class RenditionSet {
                 fc.unshift('codec')
             }
             if (fc.length !== 3) {
-                throwError(`Invalid filter ${fil} - must be in the form resource:field:value`);
+                throwError(`Invalid filter "${fil}" - must be in the form resource:field:value`);
+                return result
+            }
+
+            if (!(fc[0] in fieldDefs)) {
+                throwError(`Invalid resource type "${fc[0]}"`);
+                return result
+            }
+            if (!collectAllFields(rends, fc[0]).has(fc[1])) {
+                throwError(`Invalid field name "${fc[1]}" for resource type "${fc[0]}"`);
                 return result
             }
 
@@ -182,7 +196,6 @@ class RenditionSet {
 let encodings = [];
 let renditions = new RenditionSet();
 
-
 $(document).ready(function () {
 
     const encodingIds = getParameterByName('encodingIds');
@@ -200,11 +213,13 @@ $(document).ready(function () {
 });
 
 async function processEncodings(encodingIds) {
+    encodings = [];
+    renditions = new RenditionSet();
+
     encodingIdList = encodingIds.split(",");
     await Promise.all(encodingIdList.map((id, i) => processEncoding(id, i)));
 
     // TODO - reflect changes to filters form in the URL
-    // TODO - handle return key in forms
     // displayFilters(renditions);
     displaySimpleFilters();
 
@@ -349,19 +364,49 @@ function arrayMerger(objValue, srcValue) {
 
 // --- DOM ---
 
-function filtersChanged(e) {
+$(document).on('submit', '#inputEncodings', encodingsChanged);
+$(document).on('submit', '#inputFilters', filtersChanged);
+
+function encodingsChanged(event) {
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+    resetTables();
+    let encodingId = $('#inputEncodingIds').val();
+    processEncodings(encodingId);
+
+    // to prevent the submit to reload the page
+    return false;
+}
+
+function filtersChanged(event) {
     let options = {
         'fieldFilter': document.getElementById('simpleFilters').value,
         'hideFieldsWithoutDiff': document.getElementById('diffFieldsOnly').checked
     };
 
+    let encodings = document.getElementById('encodingsTable');
+    let checkboxes = encodings.getElementsByTagName("input");
+
+    let encodingFilter = "";
+    for (chk of checkboxes) {
+        if (chk.checked) {
+            encodingFilter += chk.value + ","
+        }
+    }
+    options['encodingFilter'] = encodingFilter;
+
+    document.getElementById('errors').innerHTML = "";
+
     let table = document.getElementById('renditionsTable');
     table.innerHTML = "";
-    displayRenditionTable(renditions, options)
+    displayRenditionTable(renditions, options);
+
+    // to prevent the submit to reload the page
+    return false;
 }
 
 function addEncodingRow(encoding) {
-    let table = document.getElementById("encodings").getElementsByTagName("tbody")[0];
+    let table = document.getElementById("encodingsTable").getElementsByTagName("tbody")[0];
 
     var row = document.createElement('tr');
     row.classList.add(encoding['cssClass']);
@@ -370,10 +415,11 @@ function addEncodingRow(encoding) {
     var cell = document.createElement('td');
     let chck = document.createElement('input');
     chck.setAttribute('type', 'checkbox');
-    chck.setAttribute('value', encoding['cssClass']);
+    chck.setAttribute('value', "encoding:id:" + encoding.id);
+    chck.setAttribute('id', encoding.id);
     chck.setAttribute('checked', 'checked');
 
-    chck.addEventListener('click', hideElements);
+    chck.addEventListener('click', filtersChanged);
 
     cell.appendChild(chck);
     row.appendChild(cell);
@@ -384,7 +430,10 @@ function addEncodingRow(encoding) {
         }
 
         var cell = document.createElement('td');
-        cell.appendChild(document.createTextNode(el));
+        var label = document.createElement('label');
+        label.setAttribute('for', encoding.id);
+        label.appendChild(document.createTextNode(el));
+        cell.appendChild(label);
         row.appendChild(cell);
     }
 }
@@ -393,73 +442,74 @@ function displaySimpleFilters() {
 
 }
 
-function displayFilters(renditions) {
-    let div = document.getElementById("filters");
-
-    let rowMedia = document.createElement('div');
-    div.appendChild(rowMedia);
-
-    // find unique media types
-    let mediaTypes = _.map(renditions, r => {
-        return r.codec['mediaType']
-    });
-    mediaTypes = _.uniq(mediaTypes);
-
-    for (let mediaType of mediaTypes) {
-        let span = document.createElement('span');
-        rowMedia.appendChild(span);
-        let l =  "media" + mediaType;
-        let chck = document.createElement('input');
-        chck.setAttribute('type', 'checkbox');
-        chck.setAttribute('id', l);
-        chck.setAttribute('value', l);
-        chck.setAttribute('checked', 'checked');
-        chck.addEventListener('click', hideElements);
-        let label = document.createElement('label');
-        label.setAttribute('for', l);
-        label.appendChild(document.createTextNode(mediaType));
-        span.appendChild(chck);
-        span.appendChild(label);
-    }
-
-    let rowCodec = document.createElement('div');
-    div.appendChild(rowCodec);
-
-    // find unique codec types
-    let codecTypes = _.map(renditions, r => {
-        return [r.codec['type'], r.codec['mediaType']]
-    });
-    codecTypes = _.uniqBy(codecTypes, c => {
-        return c[0];
-    });
-
-    for (let codecMediaPair of codecTypes) {
-        let span = document.createElement('span');
-        span.classList.add("media" + codecMediaPair[1]);
-        rowCodec.appendChild(span);
-        let l =  "codec" + codecMediaPair[0];
-        let chck = document.createElement('input');
-        chck.setAttribute('type', 'checkbox');
-        chck.setAttribute('id', l);
-        chck.setAttribute('value', l);
-        chck.setAttribute('checked', 'checked');
-        chck.addEventListener('click', hideElements);
-        let label = document.createElement('label');
-        label.setAttribute('for', l);
-        label.appendChild(document.createTextNode(codecMediaPair[0]));
-        span.appendChild(chck);
-        span.appendChild(label);
-    }
-
-}
+// function displayFilters(renditions) {
+//     let div = document.getElementById("filters");
+//
+//     let rowMedia = document.createElement('div');
+//     div.appendChild(rowMedia);
+//
+//     // find unique media types
+//     let mediaTypes = _.map(renditions, r => {
+//         return r.codec['mediaType']
+//     });
+//     mediaTypes = _.uniq(mediaTypes);
+//
+//     for (let mediaType of mediaTypes) {
+//         let span = document.createElement('span');
+//         rowMedia.appendChild(span);
+//         let l =  "media" + mediaType;
+//         let chck = document.createElement('input');
+//         chck.setAttribute('type', 'checkbox');
+//         chck.setAttribute('id', l);
+//         chck.setAttribute('value', l);
+//         chck.setAttribute('checked', 'checked');
+//         chck.addEventListener('click', hideElements);
+//         let label = document.createElement('label');
+//         label.setAttribute('for', l);
+//         label.appendChild(document.createTextNode(mediaType));
+//         span.appendChild(chck);
+//         span.appendChild(label);
+//     }
+//
+//     let rowCodec = document.createElement('div');
+//     div.appendChild(rowCodec);
+//
+//     // find unique codec types
+//     let codecTypes = _.map(renditions, r => {
+//         return [r.codec['type'], r.codec['mediaType']]
+//     });
+//     codecTypes = _.uniqBy(codecTypes, c => {
+//         return c[0];
+//     });
+//
+//     for (let codecMediaPair of codecTypes) {
+//         let span = document.createElement('span');
+//         span.classList.add("media" + codecMediaPair[1]);
+//         rowCodec.appendChild(span);
+//         let l =  "codec" + codecMediaPair[0];
+//         let chck = document.createElement('input');
+//         chck.setAttribute('type', 'checkbox');
+//         chck.setAttribute('id', l);
+//         chck.setAttribute('value', l);
+//         chck.setAttribute('checked', 'checked');
+//         chck.addEventListener('click', hideElements);
+//         let label = document.createElement('label');
+//         label.setAttribute('for', l);
+//         label.appendChild(document.createTextNode(codecMediaPair[0]));
+//         span.appendChild(chck);
+//         span.appendChild(label);
+//     }
+//
+// }
 
 function displayRenditionTable(renditions, options) {
     var table = document.createElement('table');
     table.classList.add('renditions');
     var tableBody = document.createElement('tbody');
 
-    let rends = renditions.filter(options['fieldFilter']);
+    let rends = renditions.filter(options['encodingFilter'] + options['fieldFilter']);
 
+    addRenditionHeader(tableBody, rends);
     addRenditionRowGroup(tableBody, rends, 'codec', options);
     addRenditionRowGroup(tableBody, rends, 'stream', options);
     addRenditionRowGroup(tableBody, rends, 'muxing', options);
@@ -469,6 +519,21 @@ function displayRenditionTable(renditions, options) {
     document.getElementById('renditionsTable').appendChild(table);
 }
 
+function addRenditionHeader(tableBody, renditions) {
+
+    let row = document.createElement('tr');
+    let header = document.createElement('th');
+    header.appendChild(document.createTextNode("#"));
+    row.appendChild(header);
+    tableBody.appendChild(row);
+
+    for (let [i,r] of renditions.entries()) {
+        var cell = document.createElement('td');
+        cell.setAttribute('colspan', 2);
+        cell.appendChild(document.createTextNode(i));
+        row.appendChild(cell);
+    }
+}
 
 function addRenditionRowGroup(tableBody, renditions, resourceType, options) {
 
@@ -572,21 +637,33 @@ function renderValue(val, field, resourceType) {
     return val
 }
 
-function hideElements(e) {
-    let className = e.srcElement.value;
 
-    let table = document.getElementById('renditionsTable');
-    let filters = document.getElementById('filters');
-    for (h of [table, filters]) {
-        for (el of h.getElementsByClassName(className)) {
-            el.classList.toggle('hide');
-        }
-    }
-}
+// function hideElements(e) {
+//     let className = e.srcElement.value;
+//
+//     let table = document.getElementById('renditionsTable');
+//     let filters = document.getElementById('filters');
+//     for (h of [table, filters]) {
+//         for (el of h.getElementsByClassName(className)) {
+//             el.classList.toggle('hide');
+//         }
+//     }
+// }
 
 function throwError(msg) {
-    let msgNode = document.createElement("p");
-    msgNode.classList.add("error")
+    let msgNode = document.createElement("div");
+    msgNode.classList.value = "alert alert-danger alert-dismissable fade show col-5";
+    msgNode.setAttribute('role', 'alert');
     msgNode.appendChild(document.createTextNode(msg));
+    msgNode.insertAdjacentHTML('beforeend',
+        '  <button type="button" class="close" data-dismiss="alert" aria-label="Close">\n' +
+        '    <span aria-hidden="true">&times;</span>\n' +
+        '  </button>');
     document.getElementById("errors").appendChild(msgNode);
+}
+
+function resetTables() {
+    document.getElementById('renditionsTable').innerHTML = "";
+    document.getElementById('encodingsTable').getElementsByTagName('tbody')[0].innerHTML = "";
+    document.getElementById('errors').innerHTML = "";
 }
