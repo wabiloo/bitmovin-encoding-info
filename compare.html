@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Bitmovin Encoding Outputs</title>
+    <link rel="stylesheet" href="node_modules/bootstrap/dist/css/bootstrap.css">
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/compare.css">
+    <script src="node_modules/jquery/dist/jquery.min.js" type="application/javascript"></script>
+    <script src="node_modules/bootstrap/dist/js/bootstrap.bundle.min.js" type="application/javascript"></script>
+    <script src="node_modules/lodash/lodash.min.js" type="application/javascript"></script>
+    <script src="node_modules/@bitmovin/api-sdk/dist/bitmovin-api-sdk.browser.js" type="application/javascript"></script>
+    <script src="node_modules/numeral/numeral.js" type="text/javascript"></script>
+    <script src="node_modules/moment/moment.js" type="text/javascript"></script>
+
+    <script src="js/bitmovin-helpers.js" type="application/javascript"></script>
+    <script src="js/encoding-comparison.js" type="application/javascript"></script>
+</head>
+<body>
+
+    <nav class="navbar navbar-light bg-light navbar-expand-lg fixed-top">
+        <a class="navbar-brand" href="#">
+            <img src="img/bitmovin-standard-square.png" width="30" height="30" class="d-inline-block align-top" alt="">
+            &nbsp;Encoding Output Comparisons
+        </a>
+        <div class="collapse navbar-collapse">
+            <div class="navbar-nav">
+            </div>
+        </div>
+        <div>
+            <button type="button" class="btn btn-info" data-toggle="modal" data-target="#helpModal">
+                Help
+            </button>
+
+        </div>
+    </nav>
+
+    <main role="main" class="container-fluid">
+
+        <div class="row">
+            <div class="col">
+                <form>
+                    <div class="form-group row">
+                        <label for="inputEncodingIds" class="col-sm-1 col-form-label">Encoding IDs</label>
+                        <div class="col-sm-6">
+                            <input type="text" class="form-control form-control-sm" id="inputEncodingIds" placeholder="your-ids">
+                        </div>
+                        <button type="button" class="btn btn-primary btn-sm mb-2 col-sm-1" id="fetchEncoding">fetch</button>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-7">
+                <table class="table table-lg encodings" id="encodings">
+                    <thead class="thead-light">
+
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="col-4 offset-1" id="filters">
+                <div class="row">
+                    Filters
+                </div>
+                <div class="row mb-2">
+                    <form class="form-inline w-100">
+                        <input class="form-control col-9" type="text" id="simpleFilters" value="">
+                        <input class="btn btn-primary col-2" type="button" id="applyFilters" onclick="filtersChanged()" value="apply"/>
+                    </form>
+                </div>
+                <div class="row">
+                    <form>
+                        <div class="form-group">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="diffFieldsOnly" onclick="filtersChanged()">
+                                <label class="form-check-label" for="diffFieldsOnly">Show only fields with different values</label>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+        </div>
+
+
+        <div>
+            <div class="col" id="errors" class="error-msg"></div>
+        </div>
+
+        <div>
+            <div class="col" id="renditionsTable"></div>
+        </div>
+
+        <!-- Modal -->
+        <div class="modal fade" id="helpModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="exampleModalLabel">Modal title</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <h3>Filters</h3>
+                        <p>A filters is written in the form of a <code>resourceType:fieldName:value</code> tuple, where:</p>
+                        <ul>
+                            <li><code>resourceType</code> is one of "encoding", "muxing", "stream" or "codec". If not set, it will default to "codec".</li>
+                            <li><code>fieldName</code> is the name of a field for that type of resource. If not set, it will default to "type".
+                                See the Bitmovin encoding API documentation for details.</li>
+                            <li><code>value</code> is the value to filter for.
+                                Note that filters will only do a string comparison for equality and therefore is really meant to be used with scalar fields</li>
+                        </ul>
+                        <p>Multiple filters can be provided, in a comma-separated list.</p>
+                        <ul>
+                            <li>If two or more filters specify values for the same resourceType and fieldName, they will be considered as `OR` filters.</li>
+                            <li>Filters for different resourceType and fieldName will be considered as `AND`filters.</li>
+                        </ul>
+                        <div class="alert alert-secondary" role="alert">
+                            <h5>example</h5>
+                            <code>"type:H264, codec:type:H265, muxing:type:MP4"</code><br/>
+                            will only show renditions that have an H264 or H265 codec, and an MP4 muxing type
+                        </div>
+
+                        <h3>Highlights</h3>
+                        <p>Differences between renditions (after filters are applied) are shown with a coloured background
+                            that reflects what encoding the rendition belongs to.</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+</body>
+</html>
