@@ -126,8 +126,23 @@ class RenditionSet {
         return this._renditions
     }
 
-    filter(filters) {
-        let rends = this.renditions;
+    collectFields(resourceType) {
+        if (!(resourceType in fieldDefs)) {
+            throwError(`Invalid resourceType ${resourceType}`)
+        }
+
+        let fieldSet = new Set(fieldDefs[resourceType]['pin']);
+
+        this.renditions.forEach( rendition => {
+            Object.getOwnPropertyNames(rendition.fieldsFor(resourceType)).forEach(key => {
+                fieldSet.add(key)
+            })
+        });
+
+        return fieldSet
+    }
+
+    canonicalPointers(filters) {
         if (_.isUndefined(filters) || filters === "") {
             filters = []
         }
@@ -159,7 +174,7 @@ class RenditionSet {
                 throwError(`Invalid resource type "${fc[0]}"`);
                 return result
             }
-            if (!collectAllFields(rends, fc[0]).has(fc[1])) {
+            if (!this.collectFields(fc[0]).has(fc[1])) {
                 throwError(`Invalid field name "${fc[1]}" for resource type "${fc[0]}"`);
                 return result
             }
@@ -176,6 +191,13 @@ class RenditionSet {
         }, []);
 
         console.log(filters);
+        return filters
+    }
+
+    filter(filters, groups) {
+        let rends = this.renditions;
+
+        filters = this.canonicalPointers(filters);
 
         for (let fc of filters) {
             rends = _.filter(rends, r => {
@@ -191,10 +213,12 @@ class RenditionSet {
 
         return rends;
     }
+
+
 }
 
-let encodings = [];
-let renditions = new RenditionSet();
+let allEncodings = [];
+let allRenditions = new RenditionSet();
 
 $(document).ready(function () {
 
@@ -213,14 +237,14 @@ $(document).ready(function () {
 });
 
 async function processEncodings(encodingIds) {
-    encodings = [];
-    renditions = new RenditionSet();
+    allEncodings = [];
+    allRenditions = new RenditionSet();
 
     encodingIdList = encodingIds.split(",");
     await Promise.all(encodingIdList.map((id, i) => processEncoding(id, i)));
 
     // TODO - reflect changes to filters form in the URL
-    // displayFilters(renditions);
+    // displayFilters(allRenditions);
     displaySimpleFilters();
 
     // trigger a filter change, which will display the table
@@ -230,7 +254,7 @@ async function processEncodings(encodingIds) {
 async function processEncoding(encodingId, i) {
     let encoding = await fetchEncodingInformation(encodingId);
     encoding['cssClass'] = "encoding"+i;
-    encodings.push(encoding);
+    allEncodings.push(encoding);
     addEncodingRow(encoding);
 
     await fetchMuxingOutputInformation(encoding);
@@ -262,10 +286,10 @@ async function fetchMuxingOutputInformation(encoding) {
         // TODO - something more clever than just picking the first stream...
         await fetchStreamAndCodecInformation(encoding.id, streamIds[0], rendition);
 
-        renditions.add(rendition)
+        allRenditions.add(rendition)
     }));
 
-    return renditions;
+    return allRenditions;
 }
 
 async function fetchStreamAndCodecInformation(encodingId, streamId, rendition) {
@@ -332,21 +356,6 @@ function inputStreamsToString(value) {
     }
 }
 
-function collectAllFields(renditions, resourceType) {
-    if (!(resourceType in fieldDefs)) {
-        throwError(`Invalid resourceType ${resourceType}`)
-    }
-
-    let fieldSet = new Set(fieldDefs[resourceType]['pin']);
-
-    renditions.forEach( rendition => {
-        Object.getOwnPropertyNames(rendition.fieldsFor(resourceType)).forEach(key => {
-            fieldSet.add(key)
-        })
-    });
-
-    return fieldSet
-}
 
 function expandFieldDefs() {
     let resourceTypes = ['encoding', 'muxing', 'stream', 'codec'];
@@ -399,7 +408,7 @@ function filtersChanged(event) {
 
     let table = document.getElementById('renditionsTable');
     table.innerHTML = "";
-    displayRenditionTable(renditions, options);
+    displayRenditionTable(allRenditions, options);
 
     // to prevent the submit to reload the page
     return false;
@@ -442,14 +451,14 @@ function displaySimpleFilters() {
 
 }
 
-// function displayFilters(renditions) {
+// function displayFilters(allRenditions) {
 //     let div = document.getElementById("filters");
 //
 //     let rowMedia = document.createElement('div');
 //     div.appendChild(rowMedia);
 //
 //     // find unique media types
-//     let mediaTypes = _.map(renditions, r => {
+//     let mediaTypes = _.map(allRenditions, r => {
 //         return r.codec['mediaType']
 //     });
 //     mediaTypes = _.uniq(mediaTypes);
@@ -475,7 +484,7 @@ function displaySimpleFilters() {
 //     div.appendChild(rowCodec);
 //
 //     // find unique codec types
-//     let codecTypes = _.map(renditions, r => {
+//     let codecTypes = _.map(allRenditions, r => {
 //         return [r.codec['type'], r.codec['mediaType']]
 //     });
 //     codecTypes = _.uniqBy(codecTypes, c => {
@@ -549,7 +558,7 @@ function addRenditionRowGroup(tableBody, renditions, resourceType, options) {
 }
 
 function addRenditionRowCells(tableBody, renditions, resourceType, options) {
-    fieldSet = collectAllFields(renditions, resourceType);
+    fieldSet = allRenditions.collectFields(resourceType);
     for (let [i, field] of Array.from(fieldSet).entries()) {
         // skip if field it to be ignored
         if (fieldDefs[resourceType]['ignore'].includes(field)) {
