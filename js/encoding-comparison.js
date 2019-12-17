@@ -1,6 +1,7 @@
 const apiKey = getParameterByName('apiKey');
 const tenantOrgId = getParameterByName('tenantOrgId');
 const bitmovinApi = window['bitmovin-api-sdk'].default({apiKey: apiKey, tenantOrgId: tenantOrgId, debug: true});
+const bitmovinClient = window['bitmovin-api-sdk']
 
 numeral.zeroFormat('N/A');
 numeral.nullFormat('N/A');
@@ -281,7 +282,6 @@ class GroupedRenditionSet {
     };
 }
 
-let allEncodings = [];
 let allRenditions = new RenditionSet();
 
 $(document).ready(function () {
@@ -304,7 +304,6 @@ $(document).ready(function () {
 });
 
 async function processEncodings(encodingIds) {
-    allEncodings = [];
     allRenditions = new RenditionSet();
 
     encodingIdList = encodingIds.split(",");
@@ -319,20 +318,23 @@ async function processEncodings(encodingIds) {
 }
 
 async function processEncoding(encodingId, i) {
-    let encoding = await fetchEncodingInformation(encodingId);
+
+    let apiClient = new bitmovinClient.default({apiKey: apiKey, tenantOrgId: tenantOrgId, debug: true});
+    let apiHelper = new BitmovinHelper(apiClient);
+
+    let encoding = await fetchEncodingInformation(apiHelper, encodingId);
     if (encoding) {
         encoding['cssClass'] = "encoding"+i;
-        allEncodings.push(encoding);
         addEncodingRow(encoding);
 
-        await fetchMuxingOutputInformation(encoding);
+        await fetchMuxingOutputInformation(apiHelper, encoding);
     }
 }
 
-async function fetchEncodingInformation(encodingId) {
+async function fetchEncodingInformation(apiHelper, encodingId) {
     try {
         let encoding;
-        encoding = await getEncoding(encodingId);
+        encoding = await apiHelper.getEncoding(encodingId);
         console.log(encoding);
         return encoding
     } catch (e) {
@@ -341,25 +343,25 @@ async function fetchEncodingInformation(encodingId) {
     }
 }
 
-async function fetchMuxingOutputInformation(encoding) {
+async function fetchMuxingOutputInformation(apiHelper, encoding) {
     // iterate through muxings
-    const muxings = await getMuxingsForEncodingId(encoding.id);
+    const muxings = await apiHelper.getMuxingsForEncodingId(encoding.id);
     await Promise.all(muxings.items.map(async function(muxing)  {
         console.log("Partial muxing:", muxing);
 
         let rendition = new Rendition(encoding);
 
-        await getMuxingDetails(encoding.id, muxing).then(fullmuxing => {
+        await apiHelper.getMuxingDetails(encoding.id, muxing).then(fullmuxing => {
             console.log("Full muxing:", fullmuxing);
-            fullmuxing['type'] = getMuxingNameFromClass(fullmuxing.constructor.name);
+            fullmuxing['type'] = apiHelper.getMuxingNameFromClass(fullmuxing.constructor.name);
 
             rendition.muxing = fullmuxing
         });
 
-        let streamIds = getStreamIdsFromMuxing(muxing);
+        let streamIds = apiHelper.getStreamIdsFromMuxing(muxing);
 
         // TODO - something more clever than just picking the first stream...
-        await fetchStreamAndCodecInformation(encoding.id, streamIds[0], rendition);
+        await fetchStreamAndCodecInformation(apiHelper, encoding.id, streamIds[0], rendition);
 
         allRenditions.add(rendition)
     }));
@@ -367,24 +369,20 @@ async function fetchMuxingOutputInformation(encoding) {
     return allRenditions;
 }
 
-async function fetchStreamAndCodecInformation(encodingId, streamId, rendition) {
-    const stream = await getStreamForEncodingIdAndStreamId(encodingId, streamId);
+async function fetchStreamAndCodecInformation(apiHelper, encodingId, streamId, rendition) {
+    const stream = await apiHelper.getStreamForEncodingIdAndStreamId(encodingId, streamId);
     console.log("Full stream:", stream);
 
     rendition.stream = stream;
 
-    const codecType = await getCodecConfigurationType(stream.codecConfigId);
+    const codecType = await apiHelper.getCodecConfigurationType(stream.codecConfigId);
     console.log("Codec Type: ", codecType);
-    const codecConfig = await getCodecConfigurationDetails(stream.codecConfigId, codecType.type);
+    const codecConfig = await apiHelper.getCodecConfigurationDetails(stream.codecConfigId, codecType.type);
     codecConfig['type'] = codecType.type;
-    codecConfig['mediaType'] = getMediaTypeFromClassName(codecConfig.constructor.name);
+    codecConfig['mediaType'] = apiHelper.getMediaTypeFromClassName(codecConfig.constructor.name);
     console.log("Codec: ", codecConfig);
 
     rendition.codec = codecConfig;
-}
-
-function getStreamIdsFromMuxing(muxing) {
-    return muxing.streams.map(muxingstream => muxingstream.streamId )
 }
 
 
@@ -452,9 +450,9 @@ $(document).on('submit', '#inputEncodings', encodingsChanged);
 $(document).on('submit', '#inputFilters', filtersChanged);
 
 function encodingsChanged(event) {
+    resetTables();
     event.stopPropagation();
     event.stopImmediatePropagation();
-    resetTables();
     let encodingId = $('#inputEncodingIds').val();
     processEncodings(encodingId);
 
@@ -480,8 +478,6 @@ function filtersChanged(event) {
         }
     }
     options['encodingFilter'] = encodingFilter;
-
-    document.getElementById('errors').innerHTML = "";
 
     let table = document.getElementById('renditionsTable');
     table.innerHTML = "";
