@@ -31,7 +31,7 @@ function getMuxingDrmDetails(encodingId, muxing, drm) {
 }
 
 function getMuxingIdsForStreamId(streamId) {
-    let muxings = []
+    let muxings = [];
     for (let [key, value] of Object.entries(mapMuxingsToStreams)) {
         if (value.includes(streamId))
             muxings.push(key);

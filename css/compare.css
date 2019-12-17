@@ -104,4 +104,8 @@
 #filters label {
     padding-right: 20px;
     padding-left: 5px;
+    justify-content: left;
+}
+#filters legend {
+    padding-left: 5px;
 }

@@ -22,6 +22,7 @@ const fieldDefs = {
     },
     stream: {
         pin: ['id'],
+        ignore: ['codecConfigId'],
         transform: {
             'conditions': conditionsToString,
             'metadata': extractLanguage,
@@ -41,7 +42,8 @@ const fieldDefs = {
             'avgBitrate': bitrateToString,
             'ignoredBy': ignoredByToString
         },
-        highlight: ['ignoredBy']
+        highlight: ['ignoredBy'],
+        nonSignificant: ['name', 'id', 'description']
     }
 };
 
@@ -318,17 +320,25 @@ async function processEncodings(encodingIds) {
 
 async function processEncoding(encodingId, i) {
     let encoding = await fetchEncodingInformation(encodingId);
-    encoding['cssClass'] = "encoding"+i;
-    allEncodings.push(encoding);
-    addEncodingRow(encoding);
+    if (encoding) {
+        encoding['cssClass'] = "encoding"+i;
+        allEncodings.push(encoding);
+        addEncodingRow(encoding);
 
-    await fetchMuxingOutputInformation(encoding);
+        await fetchMuxingOutputInformation(encoding);
+    }
 }
 
 async function fetchEncodingInformation(encodingId) {
-    const encoding = await getEncoding(encodingId);
-    console.log(encoding);
-    return encoding
+    try {
+        let encoding;
+        encoding = await getEncoding(encodingId);
+        console.log(encoding);
+        return encoding
+    } catch (e) {
+        throwError(`${e.name} (${e.errorCode}) - ${e.developerMessage}`, `${e.details[0].text}`)
+        return
+    }
 }
 
 async function fetchMuxingOutputInformation(encoding) {
@@ -456,7 +466,8 @@ function filtersChanged(event) {
     let options = {
         'fieldFilter': document.getElementById('simpleFilters').value,
         'groupBy': document.getElementById('simpleGroups').value,
-        'hideFieldsWithoutDiff': document.getElementById('diffFieldsOnly').checked
+        'hideFieldsWithoutDiff': document.getElementById('diffFieldsOnly').checked,
+        'hideNonSignificantFields': document.getElementById('noDescFields').checked
     };
 
     let encodings = document.getElementById('encodingsTable');
@@ -650,6 +661,11 @@ function addRenditionRowCells(tableBody, renditions, resourceType, options) {
             continue;
         }
 
+        // skip non-significant fields if part of the options
+        if (options['hideNonSignificantFields'] && fieldDefs[resourceType]['nonSignificant'].includes(field)) {
+            continue;
+        }
+
         var row = document.createElement('tr');
         row.classList.add("row" + (i % 2));
 
@@ -753,7 +769,7 @@ function renderValue(val, field, resourceType) {
 //     }
 // }
 
-function throwError(msg) {
+function throwError(msg, detail, errorcode) {
     let msgNode = document.createElement("div");
     msgNode.classList.value = "alert alert-danger alert-dismissable fade show col-5";
     msgNode.setAttribute('role', 'alert');
@@ -762,6 +778,11 @@ function throwError(msg) {
         '  <button type="button" class="close" data-dismiss="alert" aria-label="Close">\n' +
         '    <span aria-hidden="true">&times;</span>\n' +
         '  </button>');
+    if (detail) {
+        let p = document.createElement("p");
+        p.appendChild(document.createTextNode(detail));
+        msgNode.appendChild(p);
+    }
     document.getElementById("errors").appendChild(msgNode);
 }
 
