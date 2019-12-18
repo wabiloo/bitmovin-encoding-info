@@ -47,10 +47,10 @@ class BitmovinHelper {
     }
 
     isSegmentedMuxing(muxing) {
-        return (muxing instanceof this._api.Fmp4Muxing
-            || muxing instanceof this._api.TsMuxing
-            || muxing instanceof this._api.WebmMuxing
-            || muxing instanceof this._api.CmafMuxing)
+        return (muxing instanceof BitmovinApi.Fmp4Muxing
+            || muxing instanceof BitmovinApi.TsMuxing
+            || muxing instanceof BitmovinApi.WebmMuxing
+            || muxing instanceof BitmovinApi.CmafMuxing)
     }
 
     getStreamsForEncodingId(encodingId) {
@@ -214,9 +214,9 @@ class BitmovinHelper {
         let urls = {};
         urls.outputType = this.getOutputNameFromClass(output.constructor.name);
 
-        if (output instanceof this._api.S3Output) {
+        if (output instanceof BitmovinApi.S3Output) {
             urls = this.computeS3Urls(urls, output.bucketName);
-        } else if (output instanceof this._api.GcsOutput) {
+        } else if (output instanceof BitmovinApi.GcsOutput) {
             urls = this.computeGcsUrls(urls, output.bucketName);
         }
 

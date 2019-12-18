@@ -1,7 +1,7 @@
 const apiKey = getParameterByName('apiKey');
 const tenantOrgId = getParameterByName('tenantOrgId');
 const bitmovinApi = window['bitmovin-api-sdk'].default({apiKey: apiKey, tenantOrgId: tenantOrgId, debug: true});
-const bitmovinClient = window['bitmovin-api-sdk']
+const bitmovinClient = window['bitmovin-api-sdk'];
 
 numeral.zeroFormat('N/A');
 numeral.nullFormat('N/A');

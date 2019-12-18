@@ -1,5 +1,6 @@
 const apiKey = getParameterByName('apiKey');
-const bitmovinApi = window['bitmovin-api-sdk'].default({apiKey: apiKey, debug: true});
+const tenantOrgId = getParameterByName('tenantOrgId');
+const bitmovinClient = window['bitmovin-api-sdk'];
 
 let player;
 let bmTables = {
@@ -14,36 +15,36 @@ let mapMuxingsToStreams = {};
 numeral.zeroFormat('N/A');
 numeral.nullFormat('N/A');
 
-async function processEncoding(encodingId) {
-    await fetchEncodingInformation(encodingId);
-    await fetchMuxingOutputInformation(encodingId);
-    await fetchStreamInformation(encodingId);
-    await fetchManifestOutputInformation(encodingId);
+async function processEncoding(apiHelper, encodingId) {
+    await fetchEncodingInformation(apiHelper, encodingId);
+    await fetchMuxingOutputInformation(apiHelper, encodingId);
+    await fetchStreamInformation(apiHelper, encodingId);
+    await fetchManifestOutputInformation(apiHelper, encodingId);
 }
 
-async function fetchEncodingInformation(encodingId) {
-    const encoding = await getEncoding(encodingId);
+async function fetchEncodingInformation(apiHelper, encodingId) {
+    const encoding = await apiHelper.getEncoding(encodingId);
     console.log(encoding);
 
     addEncodingRow(encoding)
 }
 
-async function fetchStreamInformation(encodingId) {
-    const streams = await getStreamsForEncodingId(encodingId);
+async function fetchStreamInformation(apiHelper, encodingId) {
+    const streams = await apiHelper.getStreamsForEncodingId(encodingId);
     streams.items.forEach(async function(stream) {
         console.log("Partial stream:", stream);
 
-        const codecType = await getCodecConfigurationType(stream.codecConfigId);
+        const codecType = await apiHelper.getCodecConfigurationType(stream.codecConfigId);
         console.log("Codec Type: ", codecType);
-        const codecConfig = await getCodecConfigurationDetails(stream.codecConfigId, codecType.type);
+        const codecConfig = await apiHelper.getCodecConfigurationDetails(stream.codecConfigId, codecType.type);
         console.log("Codec: ", codecConfig);
 
         let row = {
             "streamid": stream.id,
             "mode": stream.mode,
-            "media": getMediaTypeFromClassName(codecConfig.constructor.name),
-            "codec": getCodecNameFromClass(codecConfig.constructor.name),
-            "label": computeCodecConfigName(codecConfig),
+            "media": apiHelper.getMediaTypeFromClassName(codecConfig.constructor.name),
+            "codec": apiHelper.getCodecNameFromClass(codecConfig.constructor.name),
+            "label": apiHelper.computeCodecConfigName(codecConfig),
             "width": codecConfig.width,
             "height": codecConfig.height,
             "bitrate": codecConfig.bitrate,
@@ -55,36 +56,36 @@ async function fetchStreamInformation(encodingId) {
     })
 }
 
-async function fetchMuxingOutputInformation(encodingId) {
+async function fetchMuxingOutputInformation(apiHelper, encodingId) {
     let allMuxings = {};
 
-    const muxings = await getMuxingsForEncodingId(encodingId);
+    const muxings = await apiHelper.getMuxingsForEncodingId(encodingId);
     muxings.items.forEach(async function(muxing)  {
         console.log("Partial muxing:", muxing);
 
-        let streams = getStreamIdsFromMuxing(muxing);
+        let streams = apiHelper.getStreamIdsFromMuxing(muxing);
         // record for later use
         mapMuxingsToStreams[muxing.id] = streams;
 
         // TODO - determine whether the partial vs full representation are different (and therefore whether this additional call is required)
-        await getMuxingDetails(encodingId, muxing).then(fullmuxing => {
+        await apiHelper.getMuxingDetails(encodingId, muxing).then(fullmuxing => {
             console.log("Full muxing:", fullmuxing);
 
             if (fullmuxing.outputs) {
                 fullmuxing.outputs.forEach(muxingOutput => {
-                    allMuxings[muxing.id] = processMuxingEncodingOutput(muxingOutput, fullmuxing, streams)})
+                    allMuxings[muxing.id] = processMuxingEncodingOutput(apiHelper, muxingOutput, fullmuxing, streams)})
             }
         });
 
-        let muxingDrms = await getMuxingDrms(encodingId, muxing);
+        let muxingDrms = await apiHelper.getMuxingDrms(encodingId, muxing);
 
         muxingDrms.items.forEach(async function(drm) {
-            getMuxingDrmDetails(encodingId, muxing, drm).then(fulldrm => {
+            apiHelper.getMuxingDrmDetails(encodingId, muxing, drm).then(fulldrm => {
                 console.log("DRM info:", fulldrm);
 
                 if (fulldrm.outputs) {
                     fulldrm.outputs.forEach(drmOutput => {
-                        allMuxings[drm.id] = processMuxingDrmEncodingOutput(drmOutput, muxing, fulldrm, streams)})
+                        allMuxings[drm.id] = processMuxingDrmEncodingOutput(apiHelper, drmOutput, muxing, fulldrm, streams)})
                 }
             })
         });
@@ -92,16 +93,16 @@ async function fetchMuxingOutputInformation(encodingId) {
     });
 }
 
-async function processMuxingEncodingOutput(muxingOutput, muxing, streams) {
+async function processMuxingEncodingOutput(apiHelper, muxingOutput, muxing, streams) {
     let fileName = null;
-    if (!isSegmentedMuxing(muxing)) {
+    if (!apiHelper.isSegmentedMuxing(muxing)) {
         fileName = muxing.filename
     }
 
-    const urls = await computeUrls(muxingOutput.outputId, muxingOutput.outputPath, fileName);
+    const urls = await apiHelper.computeUrls(muxingOutput.outputId, muxingOutput.outputPath, fileName);
 
     addMuxingRow(
-        getMuxingNameFromClass(muxing.constructor.name),
+        apiHelper.getMuxingNameFromClass(muxing.constructor.name),
         muxing.id,
         muxing.avgBitrate,
         null,
@@ -118,16 +119,16 @@ async function processMuxingEncodingOutput(muxingOutput, muxing, streams) {
     };
 }
 
-async function processMuxingDrmEncodingOutput(drmOutput, muxing, drm, streams) {
+async function processMuxingDrmEncodingOutput(apiHelper, drmOutput, muxing, drm, streams) {
     let fileName = null;
-    if (!isSegmentedMuxing(muxing)) {
+    if (!apiHelper.isSegmentedMuxing(muxing)) {
         fileName = drm.filename
     }
 
-    const urls = await computeUrls(drmOutput.outputId, drmOutput.outputPath, fileName);
+    const urls = await apiHelper.computeUrls(drmOutput.outputId, drmOutput.outputPath, fileName);
 
     addMuxingRow(
-        getMuxingNameFromClass(muxing.constructor.name),
+        apiHelper.getMuxingNameFromClass(muxing.constructor.name),
         muxing.id,
         muxing.avgBitrate,
         getDrmNameFromClass(drm.constructor.name),
@@ -144,17 +145,17 @@ async function processMuxingDrmEncodingOutput(drmOutput, muxing, drm, streams) {
     };
 }
 
-async function fetchManifestOutputInformation(encodingId) {
-    const dashManifests = await getDashManifestsForEncodingId(encodingId);
-    const hlsManifests = await getHlsManifestsForEncodingId(encodingId);
-    const smoothManifests = await getSmoothManifestsForEncodingId(encodingId);
+async function fetchManifestOutputInformation(apiHelper, encodingId) {
+    const dashManifests = await apiHelper.getDashManifestsForEncodingId(encodingId);
+    const hlsManifests = await apiHelper.getHlsManifestsForEncodingId(encodingId);
+    const smoothManifests = await apiHelper.getSmoothManifestsForEncodingId(encodingId);
 
     const manifests = [...dashManifests.items, ...hlsManifests.items, ...smoothManifests.items];
 
     manifests.forEach(manifest => {
         console.log(manifest);
 
-        manifest.outputs.forEach(manifestOutput => processManifestEncodingOutput(manifestOutput, manifest))
+        manifest.outputs.forEach(manifestOutput => processManifestEncodingOutput(apiHelper, manifestOutput, manifest))
     });
 
     if (manifests.length === 0) {
@@ -162,7 +163,7 @@ async function fetchManifestOutputInformation(encodingId) {
     }
 }
 
-async function processManifestEncodingOutput(manifestOutput, manifest) {
+async function processManifestEncodingOutput(apiHelper, manifestOutput, manifest) {
     let manifestName = null;
 
     if (manifest instanceof bitmovinApi.SmoothStreamingManifest) {
@@ -171,7 +172,7 @@ async function processManifestEncodingOutput(manifestOutput, manifest) {
         manifestName = manifest.manifestName;
     }
 
-    const urls = await computeUrls(manifestOutput.outputId, manifestOutput.outputPath, manifestName);
+    const urls = await apiHelper.computeUrls(manifestOutput.outputId, manifestOutput.outputPath, manifestName);
 
     addManifestRow(manifest.type, manifest.id, urls)
 }
@@ -721,10 +722,13 @@ $(document).ready(function () {
         }
     });
 
+    let apiClient = new bitmovinClient.default({apiKey: apiKey, tenantOrgId: tenantOrgId, debug: true});
+    let apiHelper = new BitmovinHelper(apiClient);
+
     const encodingId = getParameterByName('encodingId');
     if (encodingId) {
         $('#inputEncodingId').val(encodingId);
-        processEncoding(encodingId);
+        processEncoding(apiHelper, encodingId);
     }
 
     const config = {
