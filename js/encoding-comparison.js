@@ -286,7 +286,8 @@ let allRenditions = new RenditionSet();
 
 $(document).ready(function () {
 
-    const encodingIds = getParameterByName('encodingIds');
+    let encodingIds = getParameterByName('encodingIds');
+    encodingIds = encodingIds.replace(/,/g, ',\n');
     document.getElementById('inputEncodingIds').value = encodingIds;
 
     const filters = getParameterByName('filters');
@@ -306,8 +307,20 @@ $(document).ready(function () {
 async function processEncodings(encodingIds) {
     allRenditions = new RenditionSet();
 
-    encodingIdList = encodingIds.split(",");
-    await Promise.all(encodingIdList.map((id, i) => processEncoding(id, i)));
+    let encodingIdList = encodingIds.split(",");
+    await Promise.all(encodingIdList.map(async (id, i) =>  {
+        id = _.trim(id);
+        let idParts = id.split(':');
+        if (idParts.length === 1) {
+            idParts.unshift(apiKey)
+        }
+        if (idParts.length === 2) {
+            idParts.splice(1,0, tenantOrgId);
+        }
+        console.log("Encoding Identifier", idParts);
+
+        await processEncoding(idParts[2], idParts[0], idParts[1], i)
+    }));
 
     // TODO - reflect changes to filters form in the URL
     // displayFilters(allRenditions);
@@ -317,8 +330,7 @@ async function processEncodings(encodingIds) {
     filtersChanged()
 }
 
-async function processEncoding(encodingId, i) {
-
+async function processEncoding(encodingId, apiKey, tenantOrgId, i) {
     let apiClient = new bitmovinClient.default({apiKey: apiKey, tenantOrgId: tenantOrgId, debug: true});
     let apiHelper = new BitmovinHelper(apiClient);
 

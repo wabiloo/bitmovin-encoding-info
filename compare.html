@@ -44,7 +44,7 @@
                     <div class="form-group row">
                         <label for="inputEncodingIds" class="col-sm-1 col-form-label">Encoding IDs</label>
                         <div class="col-sm-6">
-                            <input type="text" class="form-control form-control-sm" id="inputEncodingIds" placeholder="your-ids">
+                            <textarea rows="2" class="form-control form-control-sm" id="inputEncodingIds" placeholder="your-ids"></textarea>
                         </div>
                         <button type="submit" class="btn btn-primary btn-sm mb-2 col-sm-1" id="btnSubmitEncodings">compare</button>
                     </div>
@@ -129,6 +129,12 @@
                         </button>
                     </div>
                     <div class="modal-body">
+                        <h3>Encodings</h3>
+                        <p>One or more encodings can be analysed with this tool, by providing a comma-separated list of tuples
+                            of the form <code>[apiKey:][tenantOrgId:]encodingId</code>.</p>
+                            <p>If apiKey or tenantOrgId are not present in this tuple, they will taken from URL parameters with the same name.
+                        </p>
+
                         <h3>Filters</h3>
                         <p>A filters is written in the form of a <code>resourceType:fieldName:value</code> tuple, where:</p>
                         <ul>
