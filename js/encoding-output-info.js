@@ -1,8 +1,6 @@
 const apiKey = getParameterByName('apiKey');
 const tenantOrgId = getParameterByName('tenantOrgId');
 const bitmovinClient = window['bitmovin-api-sdk'];
-const apiClient = new bitmovinClient.default({apiKey: apiKey, tenantOrgId: tenantOrgId, debug: true});
-const apiHelper = new BitmovinHelper(apiClient);
 
 let player;
 let bmTables = {
@@ -729,11 +727,19 @@ $(document).ready(function () {
         }
     });
 
-    const encodingId = getParameterByName('encodingId');
-    if (encodingId) {
-        $('#inputEncodingId').val(encodingId);
-        processEncoding(apiHelper, encodingId);
+    if (apiKey === null) {
+        throwError("No api key found. You must provide an <code>apiKey</code> (and optionally <code>tenangOrgId</code>) URL parameter");
+    } else {
+        let apiClient = new bitmovinClient.default({apiKey: apiKey, tenantOrgId: tenantOrgId, debug: true});
+        let apiHelper = new BitmovinHelper(apiClient);
+
+        const encodingId = getParameterByName('encodingId');
+        if (encodingId) {
+            $('#inputEncodingId').val(encodingId);
+            processEncoding(apiHelper, encodingId);
+        }
     }
+
 
     const config = {
         key: 'a973bb60-98d2-4404-8b45-b9f092f3d08d',
@@ -747,3 +753,21 @@ $(document).ready(function () {
     let container = document.getElementById('test-player');
     player = new bitmovin.player.Player(container, config);
 });
+
+
+function throwError(msg, detail, errorcode) {
+    let msgNode = document.createElement("div");
+    msgNode.classList.value = "alert alert-danger alert-dismissable fade show col-5";
+    msgNode.setAttribute('role', 'alert');
+    msgNode.insertAdjacentHTML("beforeend", msg);
+    msgNode.insertAdjacentHTML('beforeend',
+        '  <button type="button" class="close" data-dismiss="alert" aria-label="Close">\n' +
+        '    <span aria-hidden="true">&times;</span>\n' +
+        '  </button>');
+    if (detail) {
+        let p = document.createElement("p");
+        p.insertAdjacentHTML("beforeend", detail);
+        msgNode.appendChild(p);
+    }
+    document.getElementById("errors").appendChild(msgNode);
+}

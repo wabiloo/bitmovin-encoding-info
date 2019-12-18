@@ -1,6 +1,5 @@
 const apiKey = getParameterByName('apiKey');
 const tenantOrgId = getParameterByName('tenantOrgId');
-const bitmovinApi = window['bitmovin-api-sdk'].default({apiKey: apiKey, tenantOrgId: tenantOrgId, debug: true});
 const bitmovinClient = window['bitmovin-api-sdk'];
 
 numeral.zeroFormat('N/A');
@@ -331,6 +330,13 @@ async function processEncodings(encodingIds) {
 }
 
 async function processEncoding(encodingId, apiKey, tenantOrgId, i) {
+    if (apiKey === null) {
+        throwError("No api key found. If you don't specify an api key on the encoding tuple, " +
+            "you must provide a default one through a " +
+            "<code>apiKey</code> (and optionally <code>tenangOrgId</code>) URL parameter")
+        return;
+    }
+
     let apiClient = new bitmovinClient.default({apiKey: apiKey, tenantOrgId: tenantOrgId, debug: true});
     let apiHelper = new BitmovinHelper(apiClient);
 
@@ -789,14 +795,14 @@ function throwError(msg, detail, errorcode) {
     let msgNode = document.createElement("div");
     msgNode.classList.value = "alert alert-danger alert-dismissable fade show col-5";
     msgNode.setAttribute('role', 'alert');
-    msgNode.appendChild(document.createTextNode(msg));
+    msgNode.insertAdjacentHTML("beforeend", msg);
     msgNode.insertAdjacentHTML('beforeend',
         '  <button type="button" class="close" data-dismiss="alert" aria-label="Close">\n' +
         '    <span aria-hidden="true">&times;</span>\n' +
         '  </button>');
     if (detail) {
         let p = document.createElement("p");
-        p.appendChild(document.createTextNode(detail));
+        p.insertAdjacentHTML("beforeend", detail);
         msgNode.appendChild(p);
     }
     document.getElementById("errors").appendChild(msgNode);
