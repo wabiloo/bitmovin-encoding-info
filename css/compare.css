@@ -24,18 +24,27 @@
 /*'rgb(227, 119, 194)', 'rgb(127, 127, 127)',*/
 /*'rgb(188, 189, 34)', 'rgb(23, 190, 207)']*/
 
-#encodingsTable {
-    color: white;
+#encodingsTable tr {
+    border-left-width: 8px;
+    border-left-style: solid;
 }
-#encodingsTable .encoding0 {
-    background-color: rgba(31, 119, 180, 33);
+#encodingsTable td {
+    padding: 0.5rem;
 }
-#encodingsTable .encoding1 {
-    background-color: rgba(255, 127, 14, 33);
+#encodingsTable label {
+    margin-bottom: 0;
 }
-#encodingsTable .encoding2 {
-    background-color: rgba(44, 160, 44, 33);
-}
+
+
+/*#encodingsTable .encoding0 {*/
+/*    background-color: rgba(31, 119, 180, 33);*/
+/*}*/
+/*#encodingsTable .encoding1 {*/
+/*    background-color: rgba(255, 127, 14, 33);*/
+/*}*/
+/*#encodingsTable .encoding2 {*/
+/*    background-color: rgba(44, 160, 44, 33);*/
+/*}*/
 
 .encoding0 {
     border-color: rgb(31, 119, 180);

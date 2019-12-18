@@ -340,6 +340,8 @@ async function processEncoding(encodingId, apiKey, tenantOrgId, i) {
         addEncodingRow(encoding);
 
         await fetchMuxingOutputInformation(apiHelper, encoding);
+
+        document.getElementById("loader-" + encodingId).innerHTML = ""
     }
 }
 
@@ -530,6 +532,12 @@ function addEncodingRow(encoding) {
         cell.appendChild(label);
         row.appendChild(cell);
     }
+
+    row.insertAdjacentHTML("beforeend",
+        `<td class="loader mr-sm-4" id="loader-${encoding.id}">` +
+        `  <img src="img/loading_animation_dark.gif" height="15">` +
+        `</td>`)
+
 }
 
 function displaySimpleFilters() {
