@@ -1,6 +1,8 @@
 const apiKey = getParameterByName('apiKey');
 const tenantOrgId = getParameterByName('tenantOrgId');
 const bitmovinClient = window['bitmovin-api-sdk'];
+const apiClient = new bitmovinClient.default({apiKey: apiKey, tenantOrgId: tenantOrgId, debug: true});
+const apiHelper = new BitmovinHelper(apiClient);
 
 let player;
 let bmTables = {
@@ -474,13 +476,18 @@ $(document).on('click', '.follow-ref-muxing', function(event) {
     }, 500);
 });
 
-$(document).on('click', '#fetchEncoding', function(event) {
-    event.stopPropagation();
-    event.stopImmediatePropagation();
+$(document).on('submit', '#inputEncodings', encodingsChanged);
+
+function encodingsChanged(e) {
+    e.stopPropagation();
+    e.stopImmediatePropagation();
     resetTables();
     let encodingId = $('#inputEncodingId').val();
-    processEncoding(encodingId);
-})
+    processEncoding(apiHelper, encodingId);
+
+    // to prevent the submit to reload the page
+    return false;
+}
 
 $(document).ready(function () {
     let divTest = $('#test');
@@ -721,9 +728,6 @@ $(document).ready(function () {
             $(row).addClass(data.streamid);
         }
     });
-
-    let apiClient = new bitmovinClient.default({apiKey: apiKey, tenantOrgId: tenantOrgId, debug: true});
-    let apiHelper = new BitmovinHelper(apiClient);
 
     const encodingId = getParameterByName('encodingId');
     if (encodingId) {
