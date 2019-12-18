@@ -405,6 +405,7 @@ async function fetchStreamAndCodecInformation(apiHelper, encodingId, streamId, r
     rendition.codec = codecConfig;
 }
 
+// - Value Transformation functions
 
 function arrayToString(value) {
     if (Array.isArray(value)) {
@@ -412,7 +413,6 @@ function arrayToString(value) {
     } else {
         return value
     }
-
 }
 
 function bitrateToString(value) {
@@ -429,13 +429,13 @@ function extractLanguage(value) {
 }
 
 function ignoredByToString(value) {
-    return "(" + value.map( v => {
+    return value.map( v => {
         return v['ignoredBy']
-    }).join(" + ") + ")";
+    }).join(" + ");
 }
 
 function appliedSettingsToString(value) {
-    return `(${value.width} x ${value.height})`
+    return `${value.width} x ${value.height}`
 }
 
 function inputStreamsToString(value) {
@@ -445,7 +445,7 @@ function inputStreamsToString(value) {
     if (inputStream.inputStreamId !== undefined) {
         return inputStream.inputStreamId
     } else {
-        return inputStream.inputPath
+        return "... " + inputStream.inputPath.split('/').slice(-1)
     }
 }
 
@@ -753,9 +753,14 @@ function addRenditionRowCells(tableBody, renditions, resourceType, options) {
                         cell.classList.add('highlight')
                     }
 
-                    cell.appendChild(document.createTextNode(
-                        renderValue(val, field, resourceType)
-                    ));
+                    let cellVal = renderValue(val, field, resourceType);
+
+                    cell.appendChild(document.createTextNode(cellVal));
+
+                    if (val !== undefined && val !== null && !_.isEqual(cellVal, val)) {
+                        cell.classList.add("derived")
+                    }
+
                     row.appendChild(cell);
 
                 }

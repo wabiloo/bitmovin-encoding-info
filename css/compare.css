@@ -103,6 +103,13 @@
     display: none;
 }
 
+.derived::after {
+    content: '\2042';
+    display: block;
+    float: right;
+    color: chocolate;
+}
+
 #filters {
 
   }
