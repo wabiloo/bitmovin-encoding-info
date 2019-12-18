@@ -2,151 +2,28 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Bitmovin Encoding Info - Outputs</title>
-    <link rel="stylesheet" href="node_modules/bootstrap/dist/css/bootstrap.css">
-    <link rel="stylesheet" href="node_modules/datatables.net-dt/css/jquery.dataTables.css">
-    <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.2.3/css/responsive.dataTables.min.css">
-    <link rel="stylesheet" href="css/main.css">
-    <script src="node_modules/jquery/dist/jquery.min.js" type="application/javascript"></script>
-    <script src="node_modules/bootstrap/dist/js/bootstrap.bundle.min.js" type="application/javascript"></script>
-    <script src="node_modules/datatables.net/js/jquery.dataTables.js" type="application/javascript"></script>
-    <script src="node_modules/datatables.net-rowgroup/js/dataTables.rowGroup.min.js" type="application/javascript"></script>
-    <script src="node_modules/datatables.net-responsive/js/dataTables.responsive.min.js" type="application/javascript"></script>
-    <script src="node_modules/lodash/lodash.min.js" type="application/javascript"></script>
-    <script src="node_modules/@bitmovin/api-sdk/dist/bitmovin-api-sdk.browser.js" type="application/javascript"></script>
-    <script src="https://cdn.bitmovin.com/player/web/8/bitmovinplayer.js" type="text/javascript" ></script>
-    <script src="node_modules/numeral/numeral.js" type="text/javascript"></script>
+    <title>Bitmovin Encoding Info</title>
+    <script type="text/javascript">
+        (function() {
+            document.addEventListener("DOMContentLoaded", function() {
+                document.getElementById("redirect").href = "./outputs.html" + window.location.search
+            });
+        })();
 
-    <script src="js/bitmovin-helper-class.js" type="application/javascript"></script>
-    <script src="js/encoding-output-info.js" type="application/javascript"></script>
+    </script>
 </head>
 <body>
 
-    <nav class="navbar navbar-light bg-light navbar-expand-lg fixed-top">
-        <a class="navbar-brand" href="#">
-            <img src="img/bitmovin-standard-square.png" width="30" height="30" class="d-inline-block align-top" alt="">
-            &nbsp;Encoding Outputs
-        </a>
-        <div class="collapse navbar-collapse">
-            <div class="navbar-nav">
-                <a class="nav-item nav-link" href="#manifests-anchor">Manifests</a>
-                <a class="nav-item nav-link" href="#muxings-anchor">Muxings</a>
-                <a class="nav-item nav-link" href="#streams-anchor">Streams</a>
-            </div>
-        </div>
-        <div>
-            <span class="help">Click a cell to copy its value</span>
-            <!--        <div class="loader mr-sm-4">-->
-            <!--            <img src="img/loading_animation_dark.gif" height="30">-->
-            <!--        </div>-->
-            <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#player-modal">Player</button>
+    <h2>A series of tools to meaningfully analyse Bitmovin Encoding configuration and outputs</h2>
 
-        </div>
-    </nav>
+    <ul>
+        <li><a href="outputs.html">outputs.html</a> - Display all manifests, muxings and streams in a single view</li>
+        <li><a href="compare.html">compare.html</a> - Diff between multiple single-stream (ie. OTT) muxings</li>
+    </ul>
 
-    <main role="main" class="container-fluid">
-
-        <div class="row">
-            <div class="col">
-                <form id="inputEncodings">
-                    <div class="form-group row">
-                        <label for="inputEncodingId" class="col-sm-1 col-form-label">Encoding ID</label>
-                        <div class="col-sm-3">
-                            <input type="text" class="form-control form-control-sm" id="inputEncodingId" placeholder="your-id">
-                        </div>
-                        <button type="submit" class="btn btn-primary btn-sm mb-2 col-sm-1" id="fetchEncoding">fetch</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        <div class="row">
-            <div class="col">
-                <table class="table table-lg" id="encodings" style="width: 100%">
-                    <thead class="thead-light">
-
-                    </thead>
-                    <tbody>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <a id="manifests-anchor" class="anchor"></a>
-        <div class="row">
-            <div class="col-1 header">
-                <h2>Manifests</h2>
-            </div>
-            <div class="col">
-                <table class="table table-lg stripe table-responsive" id="manifests">
-                    <thead class="thead-light">
-                    </thead>
-                    <tbody>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <a id="muxings-anchor" class="anchor"></a>
-        <div class="row">
-            <div class="col-1 header">
-                <h2>Muxings</h2>
-            </div>
-            <div class="col">
-                <table class="table table-lg stripe" id="muxings" style="width: 100%">
-                    <thead class="thead-light">
-                    </thead>
-                    <tbody>
-
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <a id="streams-anchor" class="anchor"></a>
-        <div class="row">
-            <div class="col-1 header">
-                <h2>Streams</h2>
-            </div>
-            <div class="col">
-                <table class="table table-lg stripe" id="streams" style="width: 100%">
-                    <thead class="thead-light">
-                    </thead>
-                    <tbody>
-
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <div>
-            <div class="col" id="errors" class="error-msg"></div>
-        </div>
-
-    </main>
-
-    <div class="modal fade" id="player-modal" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Player </h5>
-                    <div class="loader mr-sm-4">
-                        <img src="img/loading_animation_dark.gif" height="30">
-                    </div>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <div id="test-player"></div>
-                </div>
-                <div class="modal-footer">
-                    <div class="stream-info"></div>
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                </div>
-            </div>
-        </div>
-    </div>
+    <p>If the URL to this page previously sent you to the first tool in that list, you may want to update
+        your browser bookmarks.</p>
+    <p>In the meantime, here is a quick <a href="#" id="redirect">redirect</a></p>
 
 </body>
 </html>
