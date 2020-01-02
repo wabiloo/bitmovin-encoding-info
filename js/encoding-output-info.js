@@ -20,6 +20,8 @@ async function processEncoding(apiHelper, encodingId) {
     await fetchMuxingOutputInformation(apiHelper, encodingId);
     await fetchStreamInformation(apiHelper, encodingId);
     await fetchManifestOutputInformation(apiHelper, encodingId);
+
+    await initPlayer(encodingId);
 }
 
 async function fetchEncodingInformation(apiHelper, encodingId) {
@@ -339,18 +341,35 @@ function dataTable_renderHiddenColumns(api, rowIdx, columns ) {
 
 // === Bitmovin Player functions
 
+function initPlayer(encodingId) {
+    const config = {
+        key: 'a973bb60-98d2-4404-8b45-b9f092f3d08d',
+        analytics: {
+            key: 'bbb7265c-7cf1-4e4c-af81-8c063015dde9',
+            videoId: encodingId,
+            title: 'Outputs from encoding ' + encodingId
+        }
+    };
+
+    let container = document.getElementById('test-player');
+    player = new bitmovin.player.Player(container, config);
+}
+
 function loadPlayer(streamType, stream) {
     showLoader();
     let source = {};
 
     switch (streamType) {
         case 'DashManifest':
+        case 'DASH':
             source['dash'] = stream;
             break;
         case 'HlsManifest':
+        case 'HLS':
             source['hls'] = stream;
             break;
         case 'SmoothStreamingManifest':
+        case 'SMOOTH':
             source['smooth'] = stream;
             break;
         case 'MP4':
@@ -740,18 +759,6 @@ $(document).ready(function () {
         }
     }
 
-
-    const config = {
-        key: 'a973bb60-98d2-4404-8b45-b9f092f3d08d',
-        analytics: {
-            key: 'bbb7265c-7cf1-4e4c-af81-8c063015dde9',
-            videoId: encodingId,
-            title: 'Outputs from encoding ' + encodingId
-        }
-    };
-
-    let container = document.getElementById('test-player');
-    player = new bitmovin.player.Player(container, config);
 });
 
 
