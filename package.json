@@ -4,16 +4,16 @@
   "description": "A browser-based tool to get quick actionable information about the outputs of an encoding",
   "main": "index.html",
   "dependencies": {
-    "@bitmovin/api-sdk": "^1.21.0-alpha.0",
-    "bootstrap": "^4.3.1",
-    "datatables.net": "^1.10.19",
-    "datatables.net-dt": "^1.10.19",
+    "@bitmovin/api-sdk": "^1.31.0",
+    "bootstrap": "^4.4.1",
+    "datatables.net": "^1.10.20",
+    "datatables.net-dt": "^1.10.20",
     "datatables.net-responsive": "^2.2.3",
-    "datatables.net-rowgroup": "^1.1.0",
+    "datatables.net-rowgroup": "^1.1.1",
     "jquery": "^3.4.1",
     "lodash": "^4.17.15",
-    "numeral": "^2.0.6",
-    "moment": "^2.24.0"
+    "moment": "^2.24.0",
+    "numeral": "^2.0.6"
   },
   "devDependencies": {},
   "scripts": {

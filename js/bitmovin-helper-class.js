@@ -95,7 +95,7 @@ class BitmovinHelper {
     }
 
     getCodecConfigurationDetails(configurationId, codecType) {
-        let className = BitmovinApi.CodecConfiguration.typeMap[codecType];
+        let className = BitmovinApi.CodecConfiguration._discriminatorMapping[codecType];
         let mediaEndpointPath = this.getMediaTypeFromClassName(className);
         let codecEndpointPath = this.getCodecEndpointFromClassName(className);
         try {
@@ -108,19 +108,19 @@ class BitmovinHelper {
     // --- Bitmovin Endpoint and Object name remapping
 
     getOutputNameFromClass(classname) {
-        return this.getObjectNameFromClass(BitmovinApi.Output.typeMap, classname)
+        return this.getObjectNameFromClass(BitmovinApi.Output._discriminatorMapping, classname)
     }
 
     getMuxingNameFromClass(classname) {
-        return this.getObjectNameFromClass(BitmovinApi.Muxing.typeMap, classname)
+        return this.getObjectNameFromClass(BitmovinApi.Muxing._discriminatorMapping, classname)
     }
 
     getDrmNameFromClass(classname) {
-        return this.getObjectNameFromClass(BitmovinApi.Drm.typeMap, classname)
+        return this.getObjectNameFromClass(BitmovinApi.Drm._discriminatorMapping, classname)
     }
 
     getCodecNameFromClass(classname) {
-        return this.getObjectNameFromClass(BitmovinApi.CodecConfiguration.typeMap, classname)
+        return this.getObjectNameFromClass(BitmovinApi.CodecConfiguration._discriminatorMapping, classname)
     }
 
     getObjectNameFromClass(object, classname) {

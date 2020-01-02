@@ -131,7 +131,7 @@ async function processMuxingDrmEncodingOutput(apiHelper, drmOutput, muxing, drm,
         apiHelper.getMuxingNameFromClass(muxing.constructor.name),
         muxing.id,
         muxing.avgBitrate,
-        getDrmNameFromClass(drm.constructor.name),
+        apiHelper.getDrmNameFromClass(drm.constructor.name),
         drm.id,
         urls,
         streams,
@@ -166,7 +166,7 @@ async function fetchManifestOutputInformation(apiHelper, encodingId) {
 async function processManifestEncodingOutput(apiHelper, manifestOutput, manifest) {
     let manifestName = null;
 
-    if (manifest instanceof bitmovinApi.SmoothStreamingManifest) {
+    if (manifest instanceof BitmovinApi.SmoothStreamingManifest) {
         manifestName = manifest.clientManifestName;
     } else {
         manifestName = manifest.manifestName;
