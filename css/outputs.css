@@ -1,0 +1,10 @@
+#player-modal .stream-info {
+    font-size: 80%;
+}
+
+#player-modal .stream-info .label {
+    font-weight: bold;
+}
+#player-modal div {
+    margin-bottom: 5px;
+}

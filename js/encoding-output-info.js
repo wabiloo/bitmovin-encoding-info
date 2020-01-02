@@ -379,7 +379,8 @@ function loadPlayer(streamType, stream) {
             console.error('Unable to create player source for stream type:', streamType)
     }
 
-    $('.stream-info').html(`${streamType}:<br/> <span class="copy-me">${stream}</span>`);
+    $('#stream-url').html(stream);
+    $('#stream-type').html(streamType);
     $('#player-modal').modal('show');
 
     player.load(source).then(
