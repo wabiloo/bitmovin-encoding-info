@@ -12,6 +12,8 @@ let bmTables = {
 
 let mapMuxingsToStreams = {};
 
+let drmKeys = {};
+
 numeral.zeroFormat('N/A');
 numeral.nullFormat('N/A');
 
@@ -89,10 +91,20 @@ async function fetchMuxingOutputInformation(apiHelper, encodingId) {
                     fulldrm.outputs.forEach(drmOutput => {
                         allMuxings[drm.id] = processMuxingDrmEncodingOutput(apiHelper, drmOutput, muxing, fulldrm, streams)})
                 }
+
+                // add to the global table, for player decryption
+                addDrmKey(fulldrm.type, fulldrm.key, fulldrm.kid)
             })
         });
         console.log(muxingDrms.items)
     });
+}
+
+function addDrmKey(type, key, kid) {
+    if (!(type in drmKeys)) {
+        drmKeys[type] = []
+    }
+    drmKeys[type] = _.unionBy(drmKeys[type], [{key:key, kid:kid}], _.isEqual)
 }
 
 async function processMuxingEncodingOutput(apiHelper, muxingOutput, muxing, streams) {
@@ -363,6 +375,11 @@ function loadPlayer(streamType, stream) {
         case 'DashManifest':
         case 'DASH':
             source['dash'] = stream;
+            if ('CENC' in drmKeys) {
+                source['drm'] = {
+                    clearkey: drmKeys['CENC']
+                };
+            }
             break;
         case 'HlsManifest':
         case 'HLS':
@@ -381,6 +398,10 @@ function loadPlayer(streamType, stream) {
 
     $('#stream-url').html(stream);
     $('#stream-type').html(streamType);
+    if (_.keys(drmKeys).length > 0) {
+        $('#drm-types').html(_.keys(drmKeys).join(" + "));
+    }
+
     $('#player-modal').modal('show');
 
     player.load(source).then(
