@@ -81,12 +81,20 @@ class BitmovinHelper {
         return this._api.encoding.configurations.type.get(configurationId)
     }
 
-    getOutput(outputId, outputType) {
+    getOutputDetails(outputId, outputType) {
+        let objectName = BitmovinApi.Output._discriminatorMapping[outputType];
+        let endpoint = this.getOutputEndpointFromClassName(objectName);
+
+        return this._api.encoding.outputs[endpoint].get(outputId);
+
         // TODO - replace with generic mechanism
         if (outputType === "S3") {
             return this._api.encoding.outputs.s3.get(outputId);
         } else if (outputType === "GCS") {
             return this._api.encoding.outputs.gcs.get(outputId);
+        } else {
+            console.error("Output type not yet handled by this tool: " + outputType);
+            return false
         }
     }
 
@@ -155,6 +163,12 @@ class BitmovinHelper {
         return classname
     }
 
+    getOutputEndpointFromClassName(classname) {
+        classname = classname.replace("Output", "");
+        classname = classname.charAt(0).toLowerCase() + classname.substring(1);
+        return classname
+    }
+
     // --- Codec naming
 
     computeCodecConfigName(codecConfig) {
@@ -209,7 +223,7 @@ class BitmovinHelper {
 
     async computeUrls(outputId, outputPath, fileName) {
         const outputType = await this.getOutputType(outputId);
-        const output = await this.getOutput(outputId, outputType.type);
+        const output = await this.getOutputDetails(outputId, outputType.type);
 
         let urls = {};
         urls.outputType = this.getOutputNameFromClass(output.constructor.name);
@@ -225,6 +239,10 @@ class BitmovinHelper {
             outputPath = outputPath.slice(0, -1);
         }
         urls.outputPath = outputPath;
+
+        urls.streamingUrl = urls.streamingUrl || "(undefined)";
+        urls.storageUrl = urls.storageUrl || "(undefined)";
+        urls.consoleUrl = urls.consoleUrl || "(undefined)";
 
         if (outputPath) {
             urls.streamingUrl = urls.streamingUrl + "/" + outputPath;

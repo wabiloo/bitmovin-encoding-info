@@ -82,6 +82,7 @@ async function fetchMuxingOutputInformation(apiHelper, encodingId) {
         });
 
         let muxingDrms = await apiHelper.getMuxingDrms(encodingId, muxing);
+        console.log(`DRMs for muxing ${muxing.id}:`, muxingDrms.items);
 
         muxingDrms.items.forEach(async function(drm) {
             apiHelper.getMuxingDrmDetails(encodingId, muxing, drm).then(fulldrm => {
@@ -96,7 +97,6 @@ async function fetchMuxingOutputInformation(apiHelper, encodingId) {
                 addDrmKey(fulldrm.type, fulldrm.key, fulldrm.kid)
             })
         });
-        console.log(muxingDrms.items)
     });
 }
 
@@ -226,8 +226,8 @@ function addMuxingRow(muxing_type, muxing_id, bitrate, drm_type, drm_id, urls, s
         "drmid": drm_id,
         "drm": drm_type ? drm_type : "-",
         "bitrate": bitrate,
-        "output": urls.outputType,
-        "host": urls.host,
+        "output": urls.outputType || "(unhandled output type)",
+        "host": urls.host || "(unhandled output type)" ,
         "urls": urlTable.prop('outerHTML'),
         "streams": addRefLinks(streams),
         "json": `<pre><code>${json}</code></pre>`
