@@ -378,12 +378,17 @@ async function fetchMuxingOutputInformation(apiHelper, encoding) {
             rendition.muxing = fullmuxing
         });
 
+        // TODO - Handle DRM!
+
         let streamIds = apiHelper.getStreamIdsFromMuxing(muxing);
 
         // TODO - something more clever than just picking the first stream...
-        await fetchStreamAndCodecInformation(apiHelper, encoding.id, streamIds[0], rendition);
+        for (streamId of streamIds) {
+            let r = _.cloneDeep(rendition);
+            await fetchStreamAndCodecInformation(apiHelper, encoding.id, streamId, r);
+            allRenditions.add(r)
+        }
 
-        allRenditions.add(rendition)
     }));
 
     return allRenditions;
