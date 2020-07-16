@@ -206,6 +206,7 @@ function addMuxingRow(muxing_type, muxing_id, bitrate, drm_type, drm_id, urls, s
     let urlTable = $('<table class="table table-sm table-hover urls"></table>');
     let urlTableBody = $('<tbody>');
 
+    urlTableBody.append(addUrlRow('filename', urls.filename));
     urlTableBody.append(addUrlRow('path', urls.outputPath));
 
     if (bitrate) {

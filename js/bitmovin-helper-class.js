@@ -226,6 +226,7 @@ class BitmovinHelper {
         const output = await this.getOutputDetails(outputId, outputType.type);
 
         let urls = {};
+        urls.filename = fileName;
         urls.outputType = this.getOutputNameFromClass(output.constructor.name);
 
         if (output instanceof BitmovinApi.S3Output) {
