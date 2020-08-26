@@ -46,6 +46,10 @@ async function fetchStreamInformation(apiHelper, encodingId) {
         const codecConfig = await apiHelper.getCodecConfigurationDetails(stream.codecConfigId, codecType.type);
         console.log("Codec: ", codecConfig);
 
+        const filters = await this.fetchFiltersInformation(apiHelper, encodingId, stream.id);
+        console.log("Filters", filters);
+        const filterTable = this.makeStreamFilterTable(filters);
+
         let row = {
             "streamid": stream.id,
             "mode": stream.mode,
@@ -56,11 +60,32 @@ async function fetchStreamInformation(apiHelper, encodingId) {
             "height": codecConfig.height,
             "bitrate": codecConfig.bitrate,
             "jsonstream": `<pre><code>${JSON.stringify(stream, null, 2)}</code></pre>`,
-            "jsoncodec": `<pre><code>${JSON.stringify(codecConfig, null, 2)}</code></pre>`
+            "jsoncodec": `<pre><code>${JSON.stringify(codecConfig, null, 2)}</code></pre>`,
+            "jsonfilters": filterTable.prop('outerHTML')
         };
 
         addStreamRow(row);
     })
+}
+
+async function fetchFiltersInformation(apiHelper, encodingId, streamId) {
+    const filters = await apiHelper.getStreamFilters(encodingId, streamId);
+
+    const resolvedFilters = await filters.filters.reduce(async function(res, filter) {
+            const filterType = await apiHelper.getFilterType(filter.id);
+            console.log("Filter type:", filterType);
+
+            const filterDetails = await apiHelper.getFilterDetails(filter.id, filterType);
+            console.log("Filter details:", filterDetails);
+
+            // async reduce returns a Promise on each iteration, so await is required
+            // https://advancedweb.hu/how-to-use-async-functions-with-array-reduce-in-javascript/#asynchronous-reduce
+            res = await(res);
+            res[filter.position] = filterDetails;
+            return res
+        }, {});
+
+    return resolvedFilters;
 }
 
 async function fetchMuxingOutputInformation(apiHelper, encodingId) {
@@ -195,6 +220,20 @@ async function processManifestEncodingOutput(apiHelper, manifestOutput, manifest
 }
 
 // === DOM functions
+
+function makeStreamFilterTable(filters) {
+    let table = $('<table class="table table-sm table-hover urls"></table>');
+    let tableBody = $('<tbody>');
+
+    for (const [pos, json] of Object.entries(filters)) {
+        let jsonHtml = `<pre><code>${JSON.stringify(json, null, 2)}</code></pre>`;
+        let newRow = $(`<tr><th>${pos}</th><td>${jsonHtml}</td>`);
+        tableBody.append(newRow);
+    }
+
+    table.append(tableBody);
+    return table;
+}
 
 function addEncodingRow(encoding, encodingStart) {
     let row = {
@@ -791,6 +830,12 @@ $(document).ready(function () {
             {
                 data: "jsonstream",
                 title: "Stream Configuration",
+                // controls DataTables() responsive and force a child row
+                className: "none copy-me"
+            },
+            {
+                data: "jsonfilters",
+                title: "Filters",
                 // controls DataTables() responsive and force a child row
                 className: "none copy-me"
             }

@@ -117,6 +117,24 @@ class BitmovinHelper {
         }
     }
 
+    getStreamFilters(encodingId, streamId) {
+        return this._api.encoding.encodings.streams.filters.list(encodingId, streamId)
+    }
+
+    getFilterType(filterId) {
+        return this._api.encoding.filters.type.get(filterId)
+    }
+
+    getFilterDetails(filterId, filterType) {
+        let className = BitmovinApi.Filter._discriminatorMapping[filterType];
+        let filterEndpointPath = this.getFilterEndpointFromClassName(className);
+        try {
+            return this._api.encoding.filters[filterEndpointPath].get(filterId);
+        } catch (e) {
+            console.error("Filter type not recognised or handled: " + className)
+        }
+    }
+
     // --- Bitmovin Endpoint and Object name remapping
 
     getOutputNameFromClass(classname) {
@@ -169,6 +187,12 @@ class BitmovinHelper {
 
     getOutputEndpointFromClassName(classname) {
         classname = classname.replace("Output", "");
+        classname = classname.charAt(0).toLowerCase() + classname.substring(1);
+        return classname
+    }
+
+    getFilterEndpointFromClassName(classname) {
+        classname = classname.replace("Filter", "");
         classname = classname.charAt(0).toLowerCase() + classname.substring(1);
         return classname
     }
