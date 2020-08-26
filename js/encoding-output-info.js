@@ -30,7 +30,10 @@ async function fetchEncodingInformation(apiHelper, encodingId) {
     const encoding = await apiHelper.getEncoding(encodingId);
     console.log(encoding);
 
-    addEncodingRow(encoding)
+    const encodingStart = await apiHelper.getEncodingStart(encodingId);
+    console.log(encodingStart);
+
+    addEncodingRow(encoding, encodingStart)
 }
 
 async function fetchStreamInformation(apiHelper, encodingId) {
@@ -193,10 +196,15 @@ async function processManifestEncodingOutput(apiHelper, manifestOutput, manifest
 
 // === DOM functions
 
-function addEncodingRow(encoding) {
+function addEncodingRow(encoding, encodingStart) {
     let row = {
         "encodingname": encoding.name,
-        "status": encoding.status
+        "status": encoding.status,
+        "version": encoding.selectedEncoderVersion,
+        "mode": encoding.selectedEncodingMode,
+        "region": encoding.selectedCloudRegion,
+        "json_encoding": `<pre><code>${JSON.stringify(encoding, null, 2)}</code></pre>`,
+        "json_start": `<pre><code>${JSON.stringify(encodingStart, null, 2)}</code></pre>`
     };
 
     bmTables.encodings.row.add(row).draw()
@@ -540,14 +548,53 @@ $(document).ready(function () {
         columns: [
             {
                 data: 'encodingname',
-                title: 'Encoding',
+                title: 'Encoding Name',
                 className: 'copy-me'
             },
             {
                 data: 'status',
                 title: 'Status'
+            },
+            {
+                data: 'version',
+                title: 'Encoder Version'
+            },
+            {
+                data: 'mode',
+                title: 'Encoding Mode'
+            },
+            {
+                data: 'region',
+                title: 'Cloud Region'
+            },
+            {
+                data: null,
+                title: "More",
+                // a column just for the button controls
+                className: 'control more',
+                orderable: false,
+                defaultContent: '',
+            },
+            {
+                data: "json_encoding",
+                title: "Encoding",
+                // controls DataTables() responsive and force a child row
+                className: "none copy-me"
+            },
+            {
+                data: "json_start",
+                title: "Start Configuration",
+                // controls DataTables() responsive and force a child row
+                className: "none copy-me"
             }
-        ]
+        ],
+        responsive: {
+            details: {
+                type: 'column',
+                renderer: dataTable_renderHiddenColumns,
+                target: '.more'  // jQuery selector as per doc - https://datatables.net/forums/discussion/57793/issue-with-using-responsive-and-a-last-column#latest
+            }
+        }
     });
 
     bmTables.manifests = $('#manifests').DataTable({

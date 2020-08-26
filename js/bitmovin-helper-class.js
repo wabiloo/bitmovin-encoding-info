@@ -11,6 +11,10 @@ class BitmovinHelper {
         return this._api.encoding.encodings.get(encodingId);
     }
 
+    getEncodingStart(encodingId) {
+        return this._api.encoding.encodings.getStartRequest(encodingId);
+    }
+
     getMuxingsForEncodingId(encodingId) {
         return this._api.encoding.encodings.muxings.list(encodingId)
     }
