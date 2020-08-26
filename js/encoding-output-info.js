@@ -201,7 +201,6 @@ function addEncodingRow(encoding, encodingStart) {
         "encodingname": encoding.name,
         "status": encoding.status,
         "version": encoding.selectedEncoderVersion,
-        "mode": encoding.selectedEncodingMode,
         "region": encoding.selectedCloudRegion,
         "json_encoding": `<pre><code>${JSON.stringify(encoding, null, 2)}</code></pre>`,
         "json_start": `<pre><code>${JSON.stringify(encodingStart, null, 2)}</code></pre>`
@@ -558,10 +557,6 @@ $(document).ready(function () {
             {
                 data: 'version',
                 title: 'Encoder Version'
-            },
-            {
-                data: 'mode',
-                title: 'Encoding Mode'
             },
             {
                 data: 'region',
