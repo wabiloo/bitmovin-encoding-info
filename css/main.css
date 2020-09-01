@@ -45,6 +45,10 @@ h2 {
     margin-bottom: 20px;
 }
 
+table.dataTable, table.dataTable th, table.dataTable td {
+    box-sizing: inherit;   /* instead of content-box, to fix alignment of URL tables within main table */
+}
+
 table.dataTable td, table.dataTable th {
     padding: 4px 4px;
 }

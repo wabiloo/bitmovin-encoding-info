@@ -46,7 +46,7 @@ async function fetchStreamInformation(apiHelper, encodingId) {
         const codecConfig = await apiHelper.getCodecConfigurationDetails(stream.codecConfigId, codecType.type);
         console.log("Codec: ", codecConfig);
 
-        const filters = await this.fetchFiltersInformation(apiHelper, encodingId, stream.id);
+        const filters = await this.fetchFiltersInformation(apiHelper, encodingId, stream.id, []);
         console.log("Filters", filters);
         const filterTable = this.makeStreamFilterTable(filters);
 
@@ -72,18 +72,18 @@ async function fetchFiltersInformation(apiHelper, encodingId, streamId) {
     const filters = await apiHelper.getStreamFilters(encodingId, streamId);
 
     const resolvedFilters = await filters.filters.reduce(async function(res, filter) {
-            const filterType = await apiHelper.getFilterType(filter.id);
-            console.log("Filter type:", filterType);
+        const filterType = await apiHelper.getFilterType(filter.id);
+        console.log("Filter type:", filterType);
 
-            const filterDetails = await apiHelper.getFilterDetails(filter.id, filterType);
-            console.log("Filter details:", filterDetails);
+        const filterDetails = await apiHelper.getFilterDetails(filter.id, filterType);
+        console.log("Filter details:", filterDetails);
 
-            // async reduce returns a Promise on each iteration, so await is required
-            // https://advancedweb.hu/how-to-use-async-functions-with-array-reduce-in-javascript/#asynchronous-reduce
-            res = await(res);
-            res[filter.position] = filterDetails;
-            return res
-        }, {});
+        // async reduce returns a Promise on each iteration, so await is required
+        // https://advancedweb.hu/how-to-use-async-functions-with-array-reduce-in-javascript/#asynchronous-reduce
+        res = await(res);
+        res[filter.position] = filterDetails;
+        return res
+    }, {});
 
     return resolvedFilters;
 }
@@ -673,13 +673,22 @@ $(document).ready(function () {
         paging: false,
         columns: [
             {
+                data: null,
+                title: "More",
+                // a column just for the button controls
+                className: 'control more',
+                orderable: false,
+                defaultContent: '',
+            },
+            {
                 data: "muxing",
                 title: "Muxing",
                 orderable: false,
+                // className: "none"
             },
             {
                 data: "drm",
-                title: "DRM"
+                title: "DRM",
             },
             {
                 data: "bitrate",
@@ -696,14 +705,6 @@ $(document).ready(function () {
                 data: "host",
                 title: "Host",
                 className: "copy-me"
-            },
-            {
-                data: null,
-                title: "More",
-                // a column just for the button controls
-                className: 'control more',
-                orderable: false,
-                defaultContent: '',
             },
             {
                 data: "urls",
@@ -773,6 +774,14 @@ $(document).ready(function () {
                 className: "none"
             },
             {
+                data: null,
+                title: "More",
+                // a column just for the button controls
+                className: 'control more',
+                orderable: false,
+                defaultContent: '',
+            },
+            {
                 data: "label",
                 title: "Codec Summary",
                 width: "250px",
@@ -800,14 +809,6 @@ $(document).ready(function () {
                 type: 'number',
                 width: "80px",
                 render: dataTable_bitrate
-            },
-            {
-                data: null,
-                title: "More",
-                // a column just for the button controls
-                className: 'control more',
-                orderable: false,
-                defaultContent: '',
             },
             {
                 data: "streamid",
