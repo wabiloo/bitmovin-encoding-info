@@ -288,7 +288,7 @@ function prettyJsonHtml(json) {
 }
 
 function makeStreamFilterTable(filters) {
-    let table = $('<table class="table table-sm table-hover urls"></table>');
+    let table = $('<table class="table table-sm table-hover filters"></table>');
     let tableBody = $('<tbody>');
 
     for (const [pos, json] of Object.entries(filters)) {

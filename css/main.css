@@ -84,6 +84,11 @@ table.urls th {
     width: 6em;
 }
 
+table.filters th {
+    width: 3em;
+    border-right: 1px solid lightgrey;
+}
+
 .control:before {
     font-size: 150%;
     line-height: 16px !important;
