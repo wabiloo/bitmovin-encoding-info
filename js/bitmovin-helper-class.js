@@ -135,6 +135,19 @@ class BitmovinHelper {
         }
     }
 
+    getInputStreamType(encodingId, inputStreamId) {
+        return this._api.encoding.encodings.inputStreams.type.get(encodingId, inputStreamId)
+    }
+
+    getInputStreamDetails(encodingId, inputStreamId, inputStreamType) {
+        let inputStreamEndpointPath = this.getInputStreamEndpointFromType(inputStreamType);
+        try {
+            return inputStreamEndpointPath.get(encodingId, inputStreamId);
+        } catch (e) {
+            console.error("InputStream type not recognised or handled: " + inputStreamType)
+        }
+    }
+
     // --- Bitmovin Endpoint and Object name remapping
 
     getOutputNameFromClass(classname) {
@@ -195,6 +208,25 @@ class BitmovinHelper {
         classname = classname.replace("Filter", "");
         classname = classname.charAt(0).toLowerCase() + classname.substring(1);
         return classname
+    }
+
+    getInputStreamEndpointFromType(inputStreamType) {
+        // No possible logic here, as it's just a bloody mess
+        const mappings = {
+            'AUDIO_MIX': this._api.encoding.encodings.inputStreams.audioMix,
+            'CAPTION_CEA608': this._api.encoding.encodings.inputStreams.captions.cea608,
+            'CAPTION_CEA708': this._api.encoding.encodings.inputStreams.captions.cea708,
+            'CONCATENATION': this._api.encoding.encodings.inputStreams.concatenation,
+            'DVB_TELETEXT': this._api.encoding.encodings.inputStreams.subtitles.dvbTeletext,
+            'FILE': this._api.encoding.encodings.inputStreams.file,
+            'INGEST': this._api.encoding.encodings.inputStreams.ingest,
+            'SIDECAR_DOLBY_VISION_METADATA': this._api.encoding.encodings.inputStreams.sidecar.dolbyVisionMetadataIngest,
+            'TRIMMING_H264_PICTURE_TIMING': this._api.encoding.encodings.inputStreams.trimming.h264PictureTiming,
+            'TRIMMING_TIME_BASED': this._api.encoding.encodings.inputStreams.trimming.timeBased,
+            'TRIMMING_TIME_CODE_TRACK': this._api.encoding.encodings.inputStreams.trimming.timecodeTrack
+        };
+
+        return mappings[inputStreamType]
     }
 
     // --- Codec naming

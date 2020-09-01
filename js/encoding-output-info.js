@@ -50,6 +50,9 @@ async function fetchStreamInformation(apiHelper, encodingId) {
         console.log("Filters", filters);
         const filterTable = this.makeStreamFilterTable(filters);
 
+        // const inputStreams = await this.fetchInputStreamInformation(apiHelper, encodingId, stream);
+        const inputStreamsTable = await this.makeInputStreamChainTable(apiHelper, encodingId, stream.inputStreams[0], "(stream)");
+
         let row = {
             "streamid": stream.id,
             "mode": stream.mode,
@@ -61,11 +64,70 @@ async function fetchStreamInformation(apiHelper, encodingId) {
             "bitrate": codecConfig.bitrate,
             "jsonstream": `<pre><code>${JSON.stringify(stream, null, 2)}</code></pre>`,
             "jsoncodec": `<pre><code>${JSON.stringify(codecConfig, null, 2)}</code></pre>`,
-            "jsonfilters": filterTable.prop('outerHTML')
+            "jsonfilters": filterTable.prop('outerHTML'),
+            "inputstreams": inputStreamsTable.prop('outerHTML')
         };
 
         addStreamRow(row);
     })
+}
+
+async function fetchInputStreamInformation(apiHelper, encodingId, inputStreamId) {
+    const inputStreamType = await apiHelper.getInputStreamType(encodingId, inputStreamId);
+    console.log("Input Stream type:", inputStreamType);
+
+    const inputStreamDetails = await apiHelper.getInputStreamDetails(encodingId, inputStreamId, inputStreamType.type);
+    console.log("Input Stream details:", inputStreamDetails);
+
+    return inputStreamDetails
+}
+
+async function makeInputStreamChainTable(apiHelper, encodingId, json, initialTitle) {
+
+    initialTitle = initialTitle || "(top)";
+
+    let table = $('<table class="table table-sm table-hover"></table>');
+    let body = $('<tbody>').appendTo(table);
+    let headerRow = $('<tr colspan="2">').appendTo(body);
+    let header = $('<th>').appendTo(headerRow);
+    header.text(initialTitle);
+
+    let mainRow = $("<tr>").appendTo(body);
+
+    let cell1 = $("<td>").appendTo(mainRow);
+    let jsonHtml = $(`<pre><code>${JSON.stringify(json, null, 2)}</code></pre>`).appendTo(cell1);
+
+    let cell2 = $("<td>").appendTo(mainRow);
+
+    // TODO - traverse JSON, and each time an inputStreamId is found, make a table from it and add it to cell2
+    let subInputStreamIds = collectInputStreamIds(json, []);
+    await Promise.all(subInputStreamIds.map(async(inputStreamId) => {
+        const inputStreamType = await apiHelper.getInputStreamType(encodingId, inputStreamId);
+        console.log("Input Stream type:", inputStreamType);
+
+        const inputStreamDetails = await apiHelper.getInputStreamDetails(encodingId, inputStreamId, inputStreamType.type);
+        console.log("Input Stream details:", inputStreamDetails);
+
+        cell2.append(await makeInputStreamChainTable(apiHelper, encodingId, inputStreamDetails, inputStreamType.type))
+    }));
+
+    return table
+}
+
+const collectInputStreamIds = (obj, res) => {
+    Object.keys(obj).forEach(key => {
+
+        if (key === "inputStreamId" && obj[key] !== undefined) {
+            console.log(`key: ${key}, value: ${obj[key]}`);
+            res.push(obj[key])
+        }
+
+        if (typeof obj[key] === 'object') {
+            collectInputStreamIds(obj[key], res)
+        }
+
+    });
+    return res
 }
 
 async function fetchFiltersInformation(apiHelper, encodingId, streamId) {
@@ -837,6 +899,12 @@ $(document).ready(function () {
             {
                 data: "jsonfilters",
                 title: "Filters",
+                // controls DataTables() responsive and force a child row
+                className: "none copy-me"
+            },
+            {
+                data: "inputstreams",
+                title: "Input Streams",
                 // controls DataTables() responsive and force a child row
                 className: "none copy-me"
             }
