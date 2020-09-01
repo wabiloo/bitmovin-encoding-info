@@ -633,6 +633,10 @@ function encodingsChanged(e) {
     e.stopImmediatePropagation();
     resetTables();
     let encodingId = $('#inputEncodingId').val();
+
+    let apiClient = new bitmovinClient.default({apiKey: apiKey, tenantOrgId: tenantOrgId, debug: true});
+    let apiHelper = new BitmovinHelper(apiClient);
+
     processEncoding(apiHelper, encodingId);
 
     // to prevent the submit to reload the page
