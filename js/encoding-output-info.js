@@ -62,8 +62,8 @@ async function fetchStreamInformation(apiHelper, encodingId) {
             "width": codecConfig.width,
             "height": codecConfig.height,
             "bitrate": codecConfig.bitrate,
-            "jsonstream": `<pre><code>${JSON.stringify(stream, null, 2)}</code></pre>`,
-            "jsoncodec": `<pre><code>${JSON.stringify(codecConfig, null, 2)}</code></pre>`,
+            "jsonstream": prettyJsonHtml(stream),
+            "jsoncodec": prettyJsonHtml(codecConfig),
             "jsonfilters": filterTable.prop('outerHTML'),
             "inputstreams": inputStreamsTable.prop('outerHTML')
         };
@@ -95,7 +95,7 @@ async function makeInputStreamChainTable(apiHelper, encodingId, json, initialTit
     let mainRow = $("<tr>").appendTo(body);
 
     let cell1 = $("<td>").appendTo(mainRow);
-    let jsonHtml = $(`<pre><code>${JSON.stringify(json, null, 2)}</code></pre>`).appendTo(cell1);
+    let jsonHtml = $(prettyJsonHtml(json)).appendTo(cell1);
 
     let cell2 = $("<td>").appendTo(mainRow);
 
@@ -213,7 +213,7 @@ async function processMuxingEncodingOutput(apiHelper, muxingOutput, muxing, stre
         null,
         urls,
         streams,
-        JSON.stringify(muxing, null, 2)
+        muxing
     );
 
     return {
@@ -239,7 +239,7 @@ async function processMuxingDrmEncodingOutput(apiHelper, drmOutput, muxing, drm,
         drm.id,
         urls,
         streams,
-        JSON.stringify(muxing, null, 2)
+        muxing
     );
 
     return {
@@ -283,12 +283,16 @@ async function processManifestEncodingOutput(apiHelper, manifestOutput, manifest
 
 // === DOM functions
 
+function prettyJsonHtml(json) {
+    return `<pre>${prettyPrintJson.toHtml(json, {indent: 2, quoteKeys: true})}</pre>`
+}
+
 function makeStreamFilterTable(filters) {
     let table = $('<table class="table table-sm table-hover urls"></table>');
     let tableBody = $('<tbody>');
 
     for (const [pos, json] of Object.entries(filters)) {
-        let jsonHtml = `<pre><code>${JSON.stringify(json, null, 2)}</code></pre>`;
+        let jsonHtml = prettyJsonHtml(json);
         let newRow = $(`<tr><th>${pos}</th><td>${jsonHtml}</td>`);
         tableBody.append(newRow);
     }
@@ -303,8 +307,8 @@ function addEncodingRow(encoding, encodingStart) {
         "status": encoding.status,
         "version": encoding.selectedEncoderVersion,
         "region": encoding.selectedCloudRegion,
-        "json_encoding": `<pre><code>${JSON.stringify(encoding, null, 2)}</code></pre>`,
-        "json_start": `<pre><code>${JSON.stringify(encodingStart, null, 2)}</code></pre>`
+        "json_encoding": prettyJsonHtml(encoding),
+        "json_start": prettyJsonHtml(encodingStart)
     };
 
     bmTables.encodings.row.add(row).draw()
@@ -339,7 +343,7 @@ function addMuxingRow(muxing_type, muxing_id, bitrate, drm_type, drm_id, urls, s
         "host": urls.host || "(unhandled output type)" ,
         "urls": urlTable.prop('outerHTML'),
         "streams": addRefLinks(streams),
-        "json": `<pre><code>${json}</code></pre>`
+        "json": prettyJsonHtml(json)
     };
 
     bmTables.muxings.row.add(row).draw();
