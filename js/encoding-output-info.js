@@ -549,33 +549,35 @@ $(document).on('click', '.copy-me', function(event) {
     event.stopPropagation();
     event.stopImmediatePropagation();
 
-    let span = $(this)[0];
+    if (event.shiftKey) {
+        let span = $(this)[0];
 
-    const selection = window.getSelection();
-    const range = document.createRange();
-    range.selectNodeContents(span);
-    selection.removeAllRanges();
-    selection.addRange(range);
-
-    try {
-        document.execCommand('copy');
+        const selection = window.getSelection();
+        const range = document.createRange();
+        range.selectNodeContents(span);
         selection.removeAllRanges();
+        selection.addRange(range);
 
-        const original = span.textContent;
-        //span.textContent = 'Copied!';
-        span.classList.add('copied');
+        try {
+            document.execCommand('copy');
+            selection.removeAllRanges();
 
-        setTimeout(() => {
-            //span.textContent = original;
-            span.classList.remove('copied');
-        }, 1200);
-    } catch(e) {
-        const errorMsg = document.querySelector('.error-msg');
-        errorMsg.classList.add('show');
+            const original = span.textContent;
+            //span.textContent = 'Copied!';
+            span.classList.add('copied');
 
-        setTimeout(() => {
-            errorMsg.classList.remove('show');
-        }, 1200);
+            setTimeout(() => {
+                //span.textContent = original;
+                span.classList.remove('copied');
+            }, 1200);
+        } catch(e) {
+            const errorMsg = document.querySelector('.error-msg');
+            errorMsg.classList.add('show');
+
+            setTimeout(() => {
+                errorMsg.classList.remove('show');
+            }, 1200);
+        }
     }
 });
 
