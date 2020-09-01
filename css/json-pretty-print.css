@@ -1,5 +1,9 @@
-.json-key     { color: brown; }
-.json-string  { color: olive; }
-.json-number  { color: navy; }
-.json-boolean { color: teal; }
+.json-key     { color: black; }
+.json-scalar   { font-weight: bolder }
+.json-string  { color: green; }
+.json-number  { color: darkorange; }
+.json-boolean { color: blue; }
 .json-null    { color: dimgray; }
+.json-mute    { opacity: 50% }
+.json-string.json-ref    { text-decoration: underline; }
+.json-id      { font-weight: bold }

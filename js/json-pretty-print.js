@@ -7,6 +7,14 @@ const prettyPrintJson = {
     toHtml(thing, options) {
         const defaults = { indent: 3, quoteKeys: false };
         const settings = { ...defaults, ...options };
+
+        const specificKeyClasses = {
+            "^createdAt$": "mute",
+            "^modifiedAt$": "mute",
+            "^id$": "id",
+            "^.*Id$": "ref"
+        };
+
         const htmlEntities = (string) => {
             // Makes text displayable in browsers
             return string
@@ -15,22 +23,40 @@ const prettyPrintJson = {
                 .replace(/</g,   '&lt;')
                 .replace(/>/g,   '&gt;');
         };
-        const buildValueHtml = (value) => {
+        const keySpecificClass = (key) => {
+            if (key) {
+                const keyName = key.replace(/"([\w]+)": |(.*): /, '$1$2');
+                for (let [k,c] of Object.entries(specificKeyClasses)) {
+                    r = new RegExp(k);
+                    if (keyName.match(r)) {
+                        return "json-" + c
+                    }
+                }
+            }
+            return ""
+        };
+        const buildKeyHtml = (key) => {
+            const html = '<span class="json-key ' + keySpecificClass(key) + '">' + key + '</span>';
+            return settings.quoteKeys ? '"' + html + '": ' : html + ": "
+        };
+        const buildValueHtml = (value, key) => {
             // Returns a string like: "<span class=json-number>3.1415</span>"
             const strType =  /^"/.test(value) && 'string';
             const boolType = ['true', 'false'].includes(value) && 'boolean';
             const nullType = value === 'null' && 'null';
             const type =     boolType || nullType || strType || 'number';
-            return '<span class=json-' + type + '>' + value + '</span>';
+            const pureValue = strType ? value.replace(/"(.*)"/, '$1') : value;
+            const htmlValue = '<span class="json-scalar json-' + type + ' ' + keySpecificClass(key) + '">' + pureValue + '</span>';
+            return strType ? '"' + htmlValue + '"' : htmlValue
         };
         const replacer = (match, p1, p2, p3, p4) => {
             // Converts the four parenthesized capture groups (indent, key, value, end) into HTML
             const part =       { indent: p1, key: p2, value: p3, end: p4 };
             const findName =   settings.quoteKeys ? /(.*)(): / : /"([\w]+)": |(.*): /;
             const indentHtml = part.indent || '';
-            const keyName =    part.key && part.key.replace(findName, '$1$2');
-            const keyHtml =    part.key ? '<span class=json-key>' + keyName + '</span>: ' : '';
-            const valueHtml =  part.value ? buildValueHtml(part.value) : '';
+            const keyName =    part.key && part.key.replace(/"([\w]+)": |(.*): /, '$1$2');
+            const keyHtml =    part.key ? buildKeyHtml(keyName) : '';
+            const valueHtml =  part.value ? buildValueHtml(part.value, keyName) : '';
             const endHtml =    part.end || '';
             return indentHtml + keyHtml + valueHtml + endHtml;
         };
