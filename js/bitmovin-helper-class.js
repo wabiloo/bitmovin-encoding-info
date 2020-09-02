@@ -16,7 +16,8 @@ class BitmovinHelper {
     }
 
     getMuxingsForEncodingId(encodingId) {
-        return this._api.encoding.encodings.muxings.list(encodingId)
+
+        return this._api.encoding.encodings.muxings.list(encodingId, {limit: 100})
     }
 
     getMuxingDetails(encodingId, muxing) {
