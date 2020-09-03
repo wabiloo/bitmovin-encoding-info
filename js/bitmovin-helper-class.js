@@ -296,10 +296,7 @@ class BitmovinHelper {
             urls = this.computeGcsUrls(urls, output.bucketName);
         }
 
-        let lastChar = outputPath.substr(-1);
-        if (lastChar === "/") {
-            outputPath = outputPath.slice(0, -1);
-        }
+        outputPath = outputPath.replace(/\/+$/, '').replace(/^\/+/, '');
         urls.outputPath = outputPath;
 
         urls.streamingUrl = urls.streamingUrl || "(undefined)";
