@@ -73,10 +73,7 @@ async function fetchStreamInformation(apiHelper, encodingId) {
 }
 
 async function fetchInputStreamInformation(apiHelper, encodingId, inputStreamId) {
-    const inputStreamType = await apiHelper.getInputStreamType(encodingId, inputStreamId);
-    console.log("Input Stream type:", inputStreamType);
-
-    const inputStreamDetails = await apiHelper.getInputStreamDetails(encodingId, inputStreamId, inputStreamType.type);
+    const inputStreamDetails = await apiHelper.getInputStreamDetails(encodingId, inputStreamId);
     console.log("Input Stream details:", inputStreamDetails);
 
     return inputStreamDetails
@@ -99,22 +96,18 @@ async function makeInputStreamChainTable(apiHelper, encodingId, json, initialTit
 
     let cell2 = $("<td>").appendTo(mainRow);
 
-    // TODO - traverse JSON, and each time an inputStreamId is found, make a table from it and add it to cell2
     let subInputStreamIds = collectInputStreamIds(json, []);
     await Promise.all(subInputStreamIds.map(async(inputStreamId) => {
-        const inputStreamType = await apiHelper.getInputStreamType(encodingId, inputStreamId);
-        console.log("Input Stream type:", inputStreamType);
-
-        const inputStreamDetails = await apiHelper.getInputStreamDetails(encodingId, inputStreamId, inputStreamType.type);
+        const inputStreamDetails = await apiHelper.getInputStreamDetails(encodingId, inputStreamId);
         console.log("Input Stream details:", inputStreamDetails);
 
-        cell2.append(await makeInputStreamChainTable(apiHelper, encodingId, inputStreamDetails, inputStreamType.type))
+        cell2.append(await makeInputStreamChainTable(apiHelper, encodingId, inputStreamDetails, inputStreamDetails.type))
     }));
 
     return table
 }
 
-const collectInputStreamIds = (obj, res) => {
+function collectInputStreamIds(obj, res) {
     Object.keys(obj).forEach(key => {
 
         if (key === "inputStreamId" && obj[key] !== undefined) {
