@@ -266,7 +266,23 @@ class BitmovinHelper {
             ));
         representations = _.flatMap(representations, 'items');
 
-        return Promise.all(representations.map(async representation => {
+        let drmrepresentations = await Promise.all(
+            representationTypes.map(t => {
+                try{
+                    return this._api.encoding.manifests.dash.periods.adaptationsets.representations[t].drm
+                        .list(manifestId, periodId, adaptationsetId).catch(error => {
+                            return
+                        });
+                } catch (e) {
+                    return
+                }
+            }));
+        drmrepresentations = _.flatMap(drmrepresentations, 'items');
+
+        let allrepresentations = [...representations, ...drmrepresentations];
+        allrepresentations = _.filter(allrepresentations);
+
+        return Promise.all(allrepresentations.map(async representation => {
             let node = {
                 "type": representation.constructor.name,
                 "payload": representation

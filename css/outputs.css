@@ -15,6 +15,7 @@
 
 .resourceType {
     font-weight: bold;
+    color: darkblue;
 }
 .resourceChildren {
     padding-left: 20px;

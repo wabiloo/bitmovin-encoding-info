@@ -27,13 +27,17 @@ async function processEncoding(apiHelper, encodingId) {
 }
 
 async function fetchEncodingInformation(apiHelper, encodingId) {
-    const encoding = await apiHelper.getEncoding(encodingId);
-    console.log(encoding);
+    try {
+        const encoding = await apiHelper.getEncoding(encodingId);
+        console.log(encoding);
 
-    const encodingStart = await apiHelper.getEncodingStart(encodingId);
-    console.log(encodingStart);
+        const encodingStart = await apiHelper.getEncodingStart(encodingId);
+        console.log(encodingStart);
 
-    addEncodingRow(encoding, encodingStart)
+        addEncodingRow(encoding, encodingStart)
+    } catch (e) {
+        throwBitmovinError(e)
+    }
 }
 
 async function fetchStreamInformation(apiHelper, encodingId) {
@@ -62,8 +66,8 @@ async function fetchStreamInformation(apiHelper, encodingId) {
             "width": codecConfig.width,
             "height": codecConfig.height,
             "bitrate": codecConfig.bitrate,
-            "jsonstream": prettyJsonHtml(stream),
-            "jsoncodec": prettyJsonHtml(codecConfig),
+            "jsonstream": prettyPayload(stream),
+            "jsoncodec": prettyPayload(codecConfig),
             "jsonfilters": filterTable.prop('outerHTML'),
             "inputstreams": inputStreamsTable.prop('outerHTML')
         };
@@ -92,7 +96,7 @@ async function makeInputStreamChainTable(apiHelper, encodingId, json, initialTit
     let mainRow = $("<tr>").appendTo(body);
 
     let cell1 = $("<td>").appendTo(mainRow);
-    let jsonHtml = $(prettyJsonHtml(json)).appendTo(cell1);
+    let jsonHtml = $(prettyPayload(json)).appendTo(cell1);
 
     let cell2 = $("<td>").appendTo(mainRow);
 
@@ -206,7 +210,8 @@ async function processMuxingEncodingOutput(apiHelper, muxingOutput, muxing, stre
         null,
         urls,
         streams,
-        muxing
+        muxing,
+        ""
     );
 
     return {
@@ -232,7 +237,8 @@ async function processMuxingDrmEncodingOutput(apiHelper, drmOutput, muxing, drm,
         drm.id,
         urls,
         streams,
-        muxing
+        muxing,
+        drm
     );
 
     return {
@@ -284,8 +290,10 @@ async function processManifestEncodingOutput(apiHelper, manifestOutput, manifest
 
 // === DOM functions
 
-function prettyJsonHtml(json) {
-    return `<pre>${prettyPrintJson.toHtml(json, {indent: 2, quoteKeys: true})}</pre>`
+function prettyPayload(json) {
+    let html = `<div class="resourceType">${json.constructor.name}</div>`;
+    html += `<pre>${prettyPrintJson.toHtml(json, {indent: 2, quoteKeys: true})}</pre>`;
+    return html
 }
 
 function makeStreamFilterTable(filters) {
@@ -293,7 +301,7 @@ function makeStreamFilterTable(filters) {
     let tableBody = $('<tbody>');
 
     for (const [pos, json] of Object.entries(filters)) {
-        let jsonHtml = prettyJsonHtml(json);
+        let jsonHtml = prettyPayload(json);
         let newRow = $(`<tr><th>${pos}</th><td>${jsonHtml}</td>`);
         tableBody.append(newRow);
     }
@@ -308,14 +316,14 @@ function addEncodingRow(encoding, encodingStart) {
         "status": encoding.status,
         "version": encoding.selectedEncoderVersion,
         "region": encoding.selectedCloudRegion,
-        "json_encoding": prettyJsonHtml(encoding),
-        "json_start": prettyJsonHtml(encodingStart)
+        "json_encoding": prettyPayload(encoding),
+        "json_start": prettyPayload(encodingStart)
     };
 
     bmTables.encodings.row.add(row).draw()
 }
 
-function addMuxingRow(muxing_type, muxing_id, bitrate, drm_type, drm_id, urls, streams, json) {
+function addMuxingRow(muxing_type, muxing_id, bitrate, drm_type, drm_id, urls, streams, json_muxing, json_drm) {
     let urlTable = $('<table class="table table-sm table-hover urls"></table>');
     let urlTableBody = $('<tbody>');
 
@@ -323,10 +331,10 @@ function addMuxingRow(muxing_type, muxing_id, bitrate, drm_type, drm_id, urls, s
     urlTableBody.append(addUrlRow('path', urls.outputPath));
 
     if (bitrate) {
-        urlTableBody.append(addUrlRow('storage', urls.storageUrl, [createLinkButton("console", urls.consoleUrl)]));
+        urlTableBody.append(addUrlRow('storage', urls.storageUrl, [button_externalLink("console", urls.consoleUrl)]));
 
         if (urls.streamingUrl !== "") {
-            urlTableBody.append(addUrlRow('streaming', urls.streamingUrl, [createPlayerButton(muxing_type, urls.streamingUrl)])) ;
+            urlTableBody.append(addUrlRow('streaming', urls.streamingUrl, [button_showPlayer(muxing_type, urls.streamingUrl)])) ;
         }
     } else {
         urlTableBody.append(addUrlRow('storage', urls.storageUrl, null));
@@ -344,7 +352,8 @@ function addMuxingRow(muxing_type, muxing_id, bitrate, drm_type, drm_id, urls, s
         "host": urls.host || "(unhandled output type)" ,
         "urls": urlTable.prop('outerHTML'),
         "streams": addRefLinks(streams),
-        "json": prettyJsonHtml(json)
+        "json_muxing": prettyPayload(json_muxing),
+        "json_drm": prettyPayload(json_drm),
     };
 
     bmTables.muxings.row.add(row).draw();
@@ -356,7 +365,7 @@ function addRefLinks(arrayOfIds) {
     let links = arrayOfIds.join("<br/>");
     let refs = arrayOfIds.join(",");
 
-    let button = addButtonToHighlightElement(refs, "show");
+    let button = button_highlightRelatedElement(refs, "show");
 
     return `${links}<br/>${button}`;
 }
@@ -365,15 +374,23 @@ function hideManifestTable() {
     $("table#manifests").hide();
 }
 
-function createPlayerButton(manifest_type, streamingUrl) {
+function button_showPlayer(manifest_type, streamingUrl) {
     let button = `<button type="button" class="btn btn-xs btn-primary btn-start-play" data-streamType="${manifest_type}" data-streamUrl="${streamingUrl}">play</button>`;
     // button.data('streamType', manifest_type);
     // button.data('streamUrl', streamingUrl);
     return button
 }
 
-function createLinkButton(name, url) {
+function button_externalLink(name, url) {
     return $(`<a class="btn btn-xs btn-secondary" href="${url}" target="_blank">${name}</a>`);
+}
+
+function button_highlightRelatedMuxingsForStream(data, type, row, meta) {
+    return `<button type="button" class="btn btn-xs btn-info follow-ref-muxing" data-streamid="${data}">show</button>`;
+}
+
+function button_highlightRelatedElement(guid, label) {
+    return `<button type="button" class="btn btn-xs btn-info follow-ref" data-ref="${guid}">${label}</button>`;
 }
 
 const showLoader = () => {
@@ -402,8 +419,8 @@ function addManifestRow(manifest, urls, manifestTree) {
     let urlTableBody = $('<tbody>');
 
     urlTableBody.append(addUrlRow('path', urls.outputPath));
-    urlTableBody.append(addUrlRow('storage', urls.storageUrl, [createLinkButton("console", urls.consoleUrl)]));
-    urlTableBody.append(addUrlRow('streaming', urls.streamingUrl, [createPlayerButton(manifest.type, urls.streamingUrl)]));
+    urlTableBody.append(addUrlRow('storage', urls.storageUrl, [button_externalLink("console", urls.consoleUrl)]));
+    urlTableBody.append(addUrlRow('streaming', urls.streamingUrl, [button_showPlayer(manifest.type, urls.streamingUrl)]));
 
     urlTable.append(urlTableBody);
 
@@ -413,7 +430,7 @@ function addManifestRow(manifest, urls, manifestTree) {
         "output": urls.outputType,
         "host": urls.host || "n/a",
         "urls": urlTable.prop('outerHTML'),
-        "tree": prettyJsonHtml(manifest)
+        "tree": prettyPayload(manifest)
     };
 
     if (manifestTree) {
@@ -425,15 +442,16 @@ function addManifestRow(manifest, urls, manifestTree) {
 
 function makeManifestTreeDiv(node) {
     let ul = $('<div class="manifestResource">');
-    let head = $(`<div class="resourceType">${node.type}<div>`).appendTo(ul);
+
+    // let head = $(`<div class="resourceType">${node.type}<div>`).appendTo(ul);
+    ul.append($(`<div class="resourcePayload">${prettyPayload(node.payload)}<div>`));
+
     if (_.has(node.payload, 'muxingId')) {
-        head.append(addButtonToHighlightElement(node.payload.muxingId, "show muxing"))
+        ul.append(button_highlightRelatedElement(node.payload.muxingId, "show muxing"))
     }
     if (_.has(node.payload, 'streamId')) {
-        head.append(addButtonToHighlightElement(node.payload.streamId, "show stream"))
+        ul.append(button_highlightRelatedElement(node.payload.streamId, "show stream"))
     }
-
-    ul.append($(`<div class="resourcePayload">${prettyJsonHtml(node.payload)}<div>`));
 
     if (_.has(node, 'children')) {
         node.children.forEach(c => {
@@ -473,14 +491,6 @@ function dataTable_bitrate(data, type, row, meta) {
     } else {
         return data ? numeral(data).format('0 b') : undefined;
     }
-}
-
-function button_addLinkToMuxings(data, type, row, meta) {
-    return `<button type="button" class="btn btn-xs btn-info follow-ref-muxing" data-streamid="${data}">show</button>`;
-}
-
-function addButtonToHighlightElement(guid, label) {
-     return `<button type="button" class="btn btn-xs btn-info follow-ref" data-ref="${guid}">${label}</button>`;
 }
 
 function dataTable_renderHiddenColumns(api, rowIdx, columns ) {
@@ -857,8 +867,14 @@ $(document).ready(function () {
                 width: "50px"
             },
             {
-                data: "json",
+                data: "json_muxing",
                 title: "Muxing Configuration",
+                // controls DataTables() responsive and force a child row
+                className: "none copy-me"
+            },
+            {
+                data: "json_drm",
+                title: "DRM Configuration",
                 // controls DataTables() responsive and force a child row
                 className: "none copy-me"
             }
@@ -947,7 +963,7 @@ $(document).ready(function () {
                 data: "streamid",
                 title: "Muxings",
                 className: "none",
-                render: button_addLinkToMuxings,
+                render: button_highlightRelatedMuxingsForStream,
                 defaultContent: '-'
             },
             {
@@ -1001,12 +1017,20 @@ $(document).ready(function () {
         const encodingId = getParameterByName('encodingId');
         if (encodingId) {
             $('#inputEncodingId').val(encodingId);
-            processEncoding(apiHelper, encodingId);
+            try {
+                processEncoding(apiHelper, encodingId);
+            } catch (e) {
+                throwError(e)
+            }
         }
     }
 
 });
 
+
+function throwBitmovinError(msg) {
+    throwError(msg.shortMessage, msg.message, msg.errorCode || msg.httpStatusCode )
+}
 
 function throwError(msg, detail, errorcode) {
     let msgNode = document.createElement("div");
@@ -1018,7 +1042,7 @@ function throwError(msg, detail, errorcode) {
         '    <span aria-hidden="true">&times;</span>\n' +
         '  </button>');
     if (detail) {
-        let p = document.createElement("p");
+        let p = document.createElement("pre");
         p.insertAdjacentHTML("beforeend", detail);
         msgNode.appendChild(p);
     }
