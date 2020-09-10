@@ -252,7 +252,7 @@ async function fetchManifestOutputInformation(apiHelper, encodingId) {
     manifests.forEach(manifest => {
         console.log(manifest);
 
-        manifest.outputs.forEach(manifestOutput => processManifestEncodingOutput(apiHelper, manifestOutput, manifest))
+        manifest.outputs.forEach(manifestOutput => processManifestEncodingOutput(apiHelper, manifestOutput, manifest));
     });
 
     if (manifests.length === 0) {
@@ -271,7 +271,12 @@ async function processManifestEncodingOutput(apiHelper, manifestOutput, manifest
 
     const urls = await apiHelper.computeUrls(manifestOutput.outputId, manifestOutput.outputPath, manifestName);
 
-    addManifestRow(manifest.type, manifest.id, urls)
+    let manifestTree;
+    if (manifest instanceof BitmovinApi.DashManifest) {
+        manifestTree = await apiHelper.getDashManifestResourceTree(manifest.id)
+    }
+
+    addManifestRow(manifest, urls, manifestTree)
 }
 
 // === DOM functions
@@ -389,26 +394,52 @@ function addStreamRow(row_info) {
     //setTimeout(function(){ streamTable.draw(); }, 3000);
 }
 
-function addManifestRow(manifest_type, manifest_id, urls) {
+function addManifestRow(manifest, urls, manifestTree) {
     let urlTable = $('<table class="table table-sm table-hover urls"></table>');
     let urlTableBody = $('<tbody>');
 
     urlTableBody.append(addUrlRow('path', urls.outputPath));
     urlTableBody.append(addUrlRow('storage', urls.storageUrl, [createLinkButton("console", urls.consoleUrl)]));
-    urlTableBody.append(addUrlRow('streaming', urls.streamingUrl, [createPlayerButton(manifest_type, urls.streamingUrl)]));
+    urlTableBody.append(addUrlRow('streaming', urls.streamingUrl, [createPlayerButton(manifest.type, urls.streamingUrl)]));
 
     urlTable.append(urlTableBody);
 
     let row = {
-        "manifestid": manifest_id,
-        "manifest": manifest_type,
+        "manifestid": manifest.id,
+        "manifest": manifest.type,
         "output": urls.outputType,
-        "host": urls.host,
-        "urls": urlTable.prop('outerHTML')
+        "host": urls.host || "n/a",
+        "urls": urlTable.prop('outerHTML'),
+        "tree": prettyJsonHtml(manifest)
     };
+
+    if (manifestTree) {
+        row['tree'] = makeManifestTreeDiv(manifestTree).prop('outerHTML')
+    }
 
     bmTables.manifests.row.add(row).draw();
 }
+
+function makeManifestTreeDiv(node) {
+    let ul = $('<div class="manifestResource">');
+    let head = $(`<div class="resourceType">${node.type}<div>`).appendTo(ul);
+    if (_.has(node.payload, 'muxingId')) {
+        head.append($(`<button type="button" class="btn btn-xs btn-info follow-ref" data-ref="${node.payload.muxingId}">show muxing</button>`))
+    }
+
+    ul.append($(`<div class="resourcePayload">${prettyJsonHtml(node.payload)}<div>`));
+
+    if (_.has(node, 'children')) {
+        node.children.forEach(c => {
+            let li = $('<div class="resourceChildren">');
+            ul.append(li);
+            li.append(makeManifestTreeDiv(c))
+        });
+    }
+
+    return ul;
+}
+
 
 function addUrlRow(title, url, actions) {
     let newRow = $("<tr>");
@@ -438,7 +469,7 @@ function dataTable_bitrate(data, type, row, meta) {
     }
 }
 
-function dataTable_addLinkToMuxings(data, type, row, meta) {
+function button_addLinkToMuxings(data, type, row, meta) {
     return `<button type="button" class="btn btn-xs btn-info follow-ref-muxing" data-streamid="${data}">show</button>`;
 }
 
@@ -702,6 +733,14 @@ $(document).ready(function () {
         paging: false,
         columns: [
             {
+                data: null,
+                title: "More",
+                // a column just for the button controls
+                className: 'control more',
+                orderable: false,
+                defaultContent: '',
+            },
+            {
                 data: 'manifest',
                 title: 'Manifest',
             },
@@ -723,8 +762,21 @@ $(document).ready(function () {
                 data: "urls",
                 title: "URLs",
                 orderable: false
+            },
+            {
+                data: "tree",
+                title: "Manifest Configuration",
+                // controls DataTables() responsive and force a child row
+                className: "none copy-me"
             }
         ],
+        responsive: {
+            details: {
+                type: 'column',
+                renderer: dataTable_renderHiddenColumns,
+                target: '.more'  // jQuery selector as per doc - https://datatables.net/forums/discussion/57793/issue-with-using-responsive-and-a-last-column#latest
+            }
+        },
         rowCallback: function( row, data, index ) {
             $(row).addClass(data.manifestid);
         }
@@ -884,7 +936,7 @@ $(document).ready(function () {
                 data: "streamid",
                 title: "Muxings",
                 className: "none",
-                render: dataTable_addLinkToMuxings,
+                render: button_addLinkToMuxings,
                 defaultContent: '-'
             },
             {

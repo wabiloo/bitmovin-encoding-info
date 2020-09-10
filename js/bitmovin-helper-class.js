@@ -66,18 +66,6 @@ class BitmovinHelper {
         return this._api.encoding.encodings.streams.get(encodingId, streamId)
     }
 
-    getDashManifestsForEncodingId(encodingId) {
-        return this._api.encoding.manifests.dash.list(q => q.encodingId(encodingId));
-    }
-
-    getHlsManifestsForEncodingId(encodingId) {
-        return this._api.encoding.manifests.hls.list(q => q.encodingId(encodingId));
-    }
-
-    getSmoothManifestsForEncodingId(encodingId) {
-        return this._api.encoding.manifests.smooth.list(q => q.encodingId(encodingId));
-    }
-
     getOutputType(outputId) {
         return this._api.encoding.outputs.type.get(outputId)
     }
@@ -208,6 +196,91 @@ class BitmovinHelper {
         classname = classname.replace("Filter", "");
         classname = classname.charAt(0).toLowerCase() + classname.substring(1);
         return classname
+    }
+
+    // --- Manifests
+
+    getDashManifestsForEncodingId(encodingId) {
+        return this._api.encoding.manifests.dash.list(q => q.encodingId(encodingId));
+    }
+
+    getHlsManifestsForEncodingId(encodingId) {
+        return this._api.encoding.manifests.hls.list(q => q.encodingId(encodingId));
+    }
+
+    getSmoothManifestsForEncodingId(encodingId) {
+        return this._api.encoding.manifests.smooth.list(q => q.encodingId(encodingId));
+    }
+
+    async getDashManifestResourceTree(manifestId) {
+        let manifest = await this._api.encoding.manifests.dash.get(manifestId);
+        let node = {
+            "type": manifest.constructor.name,
+            "payload": manifest
+        };
+
+        node.children = await this.getDashManifestResourceTree_periods(manifest.id);
+        return node
+    }
+
+    async getDashManifestResourceTree_periods(manifestId) {
+        let periods = await this._api.encoding.manifests.dash.periods.list(manifestId);
+
+        return Promise.all(periods.items.map(async period => {
+            let node = {
+                "type": period.constructor.name,
+                "payload": period
+            };
+            node.children = await this.getDashManifestResourceTree_adaptationsets(manifestId, period.id);
+            return node
+        }));
+    }
+
+    async getDashManifestResourceTree_adaptationsets(manifestId, periodId) {
+        let adaptationsets = await Promise.all(
+            ['audio', 'video', 'subtitle'].map(t => {
+                return this._api.encoding.manifests.dash.periods.adaptationsets[t].list(manifestId, periodId);
+            }
+        ));
+        adaptationsets = _.flatMap(adaptationsets, 'items');
+
+        return Promise.all(adaptationsets.map(async adaptationset => {
+            let node = {
+                "type": adaptationset.constructor.name,
+                "payload": adaptationset
+            };
+            node.children = await this.getDashManifestResourceTree_representations(manifestId, periodId, adaptationset.id);
+            return node
+        }));
+    }
+
+    async getDashManifestResourceTree_representations(manifestId, periodId, adaptationsetId) {
+        let rkeys = _.keys(this._api.encoding.manifests.dash.periods.adaptationsets.representations);
+        let representationTypes = _.differenceWith(rkeys, ['restClient']);
+
+        let representations = await Promise.all(
+            representationTypes.map(t => {
+                    return this._api.encoding.manifests.dash.periods.adaptationsets.representations[t]
+                        .list(manifestId, periodId, adaptationsetId);
+                }
+            ));
+        representations = _.flatMap(representations, 'items');
+
+        return Promise.all(representations.map(async representation => {
+            let node = {
+                "type": representation.constructor.name,
+                "payload": representation
+            };
+            return node
+        }));
+    }
+
+    getDashPeriods(manifestId) {
+        return this._api.encoding.manifests.dash.periods.list(manifestId)
+    }
+
+    getDashPeriods(manifestId) {
+        return this._api.encoding.manifests.dash.periods.list(manifestId)
     }
 
 

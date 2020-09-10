@@ -8,3 +8,18 @@
 #player-modal div {
     margin-bottom: 5px;
 }
+
+#manifests {
+    width: 100% !important;
+}
+
+.resourceType {
+    font-weight: bold;
+}
+.resourceChildren {
+    padding-left: 20px;
+    border-left: 1px solid lightgray;
+    border-bottom: 1px solid lightgrey;
+    border-collapse: collapse;
+    margin-bottom: 15px;
+}
