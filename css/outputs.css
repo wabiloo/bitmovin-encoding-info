@@ -23,3 +23,7 @@
     border-collapse: collapse;
     margin-bottom: 15px;
 }
+
+button.follow-ref {
+    margin-right: 10px;
+}

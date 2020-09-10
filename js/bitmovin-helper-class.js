@@ -42,7 +42,7 @@ class BitmovinHelper {
         return this._api.encoding.encodings.muxings[muxingEndpointPath].drm[drmEndpointPath].get(encodingId, muxing.id, drm.id)
     }
 
-    static getMuxingIdsForStreamId(streamId) {
+    getMuxingIdsForStreamId(streamId) {
         let muxings = [];
         for (let [key, value] of Object.entries(mapMuxingsToStreams)) {
             if (value.includes(streamId))
@@ -275,14 +275,52 @@ class BitmovinHelper {
         }));
     }
 
-    getDashPeriods(manifestId) {
-        return this._api.encoding.manifests.dash.periods.list(manifestId)
+    async getHlsManifestResourceTree(manifestId) {
+        let manifest = await this._api.encoding.manifests.hls.get(manifestId);
+        let node = {
+            "type": manifest.constructor.name,
+            "payload": manifest
+        };
+
+        const streams = await this.getHlsManifestResourceTree_streams(manifest.id);
+        const media = await this.getHlsManifestResourceTree_medias(manifest.id);
+        node.children = [...streams, ...media];
+
+        return node
     }
 
-    getDashPeriods(manifestId) {
-        return this._api.encoding.manifests.dash.periods.list(manifestId)
+    async getHlsManifestResourceTree_medias(manifestId) {
+        let rkeys = _.keys(this._api.encoding.manifests.hls.media);
+        let mediaTypes = _.differenceWith(rkeys, ['restClient', 'type', 'customTags']);
+
+        let medias = await Promise.all(
+            mediaTypes.map(t => {
+                    return this._api.encoding.manifests.hls.media[t]
+                        .list(manifestId);
+                }
+            ));
+        medias = _.flatMap(medias, 'items');
+
+        return Promise.all(medias.map(async media => {
+            let node = {
+                "type": media.constructor.name,
+                "payload": media
+            };
+            return node
+        }));
     }
 
+    async getHlsManifestResourceTree_streams(manifestId) {
+        let streams = await this._api.encoding.manifests.hls.streams.list(manifestId);
+
+        return Promise.all(streams.items.map(async stream => {
+            let node = {
+                "type": stream.constructor.name,
+                "payload": stream
+            };
+            return node
+        }));
+    }
 
     // --- Codec naming
 

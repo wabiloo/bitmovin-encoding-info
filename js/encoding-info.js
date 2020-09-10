@@ -275,6 +275,9 @@ async function processManifestEncodingOutput(apiHelper, manifestOutput, manifest
     if (manifest instanceof BitmovinApi.DashManifest) {
         manifestTree = await apiHelper.getDashManifestResourceTree(manifest.id)
     }
+    if (manifest instanceof BitmovinApi.HlsManifest) {
+        manifestTree = await apiHelper.getHlsManifestResourceTree(manifest.id)
+    }
 
     addManifestRow(manifest, urls, manifestTree)
 }
@@ -353,7 +356,7 @@ function addRefLinks(arrayOfIds) {
     let links = arrayOfIds.join("<br/>");
     let refs = arrayOfIds.join(",");
 
-    let button = `<button type="button" class="btn btn-xs btn-info follow-ref" data-ref="${refs}">show</button>`;
+    let button = addButtonToHighlightElement(refs, "show");
 
     return `${links}<br/>${button}`;
 }
@@ -424,7 +427,10 @@ function makeManifestTreeDiv(node) {
     let ul = $('<div class="manifestResource">');
     let head = $(`<div class="resourceType">${node.type}<div>`).appendTo(ul);
     if (_.has(node.payload, 'muxingId')) {
-        head.append($(`<button type="button" class="btn btn-xs btn-info follow-ref" data-ref="${node.payload.muxingId}">show muxing</button>`))
+        head.append(addButtonToHighlightElement(node.payload.muxingId, "show muxing"))
+    }
+    if (_.has(node.payload, 'streamId')) {
+        head.append(addButtonToHighlightElement(node.payload.streamId, "show stream"))
     }
 
     ul.append($(`<div class="resourcePayload">${prettyJsonHtml(node.payload)}<div>`));
@@ -471,6 +477,10 @@ function dataTable_bitrate(data, type, row, meta) {
 
 function button_addLinkToMuxings(data, type, row, meta) {
     return `<button type="button" class="btn btn-xs btn-info follow-ref-muxing" data-streamid="${data}">show</button>`;
+}
+
+function addButtonToHighlightElement(guid, label) {
+     return `<button type="button" class="btn btn-xs btn-info follow-ref" data-ref="${guid}">${label}</button>`;
 }
 
 function dataTable_renderHiddenColumns(api, rowIdx, columns ) {
@@ -636,7 +646,7 @@ $(document).on('click', '.follow-ref-muxing', function(event) {
     event.stopImmediatePropagation();
 
     let streamId = $(this).first().data('streamid');
-    let muxingIds = getMuxingIdsForStreamId(streamId);
+    let muxingIds = window['apiHelper'].getMuxingIdsForStreamId(streamId);
 
     let classes = muxingIds.map(g => '.'+g).join(',');
 
@@ -664,6 +674,7 @@ function encodingsChanged(e) {
 
     let apiClient = new bitmovinClient.default({apiKey: apiKey, tenantOrgId: tenantOrgId, debug: true});
     let apiHelper = new BitmovinHelper(apiClient);
+    window['apiHelper'] = apiHelper;
 
     processEncoding(apiHelper, encodingId);
 
@@ -985,6 +996,7 @@ $(document).ready(function () {
     } else {
         let apiClient = new bitmovinClient.default({apiKey: apiKey, tenantOrgId: tenantOrgId, debug: true});
         let apiHelper = new BitmovinHelper(apiClient);
+        window['apiHelper'] = apiHelper;
 
         const encodingId = getParameterByName('encodingId');
         if (encodingId) {
