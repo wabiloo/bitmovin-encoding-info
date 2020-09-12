@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="css/main.css">
     <link rel="stylesheet" href="css/outputs.css">
     <link rel="stylesheet" href="css/json-pretty-print.css">
+    <link rel="stylesheet" href="css/file-viewer.css">
     <script src="node_modules/jquery/dist/jquery.min.js" type="application/javascript"></script>
     <script src="node_modules/bootstrap/dist/js/bootstrap.bundle.min.js" type="application/javascript"></script>
     <script src="node_modules/datatables.net/js/jquery.dataTables.js" type="application/javascript"></script>
@@ -21,6 +22,7 @@
 
     <script src="js/json-pretty-print.js" type="application/javascript"></script>
     <script src="js/bitmovin-helper-class.js" type="application/javascript"></script>
+    <script src="js/file-viewer.js" type="application/javascript"></script>
     <script src="js/encoding-info.js" type="application/javascript"></script>
 </head>
 <body>
@@ -42,6 +44,7 @@
             <!--        <div class="loader mr-sm-4">-->
             <!--            <img src="img/loading_animation_dark.gif" height="30">-->
             <!--        </div>-->
+            <button type="button" class="btn btn-warning" data-toggle="modal" data-target="#viewer-modal">Viewer</button>
             <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#player-modal">Player</button>
 
         </div>
@@ -160,6 +163,33 @@
                             <span id="drm-types">(none)</span>
                         </div>
                     </div>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="viewer-modal" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">File Viewer</h5>
+                    <div class="loader mr-sm-4">
+                        <img src="img/loading_animation_dark.gif" height="30">
+                    </div>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="inputContainer">
+                        <input type="text" id="file-url" onkeypress="viewerKeyPress(event)">
+                        <a href="#" id="previous-url" class="openurl">back</a>
+                    </div>
+
+                    <div id="content-viewer" class="container"></div>
+                </div>
+                <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
                 </div>
             </div>

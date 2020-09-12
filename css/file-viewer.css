@@ -1,0 +1,43 @@
+
+#content-viewer {
+    font-family:monospace;
+    /*border:solid 1px black;*/
+    overflow:auto;
+    white-space:pre;
+    background-color:#ffffff;
+    height:calc(100% - 76px);
+}
+#viewer-modal a {
+    color:black;
+}
+#viewer-modal input, #viewer-modal .inputContainer {
+    font-family:monospace;
+    /*font-weight:bold;*/
+}
+#viewer-modal input {
+    padding:4px;
+}
+#viewer-modal .inputContainer {
+    margin:8px;
+}
+#viewer-modal .container {
+    font-family:monospace;
+    margin:4px;
+    padding:4px;
+}
+#file-url {
+    font-family:monospace;
+    width:90%;
+    border:solid 1px black;
+    white-space:pre;
+    background-color:#ffffff;
+}
+#content-viewer .ext {
+    color:purple;
+}
+#content-viewer hr {
+    border:0;
+    border-bottom:1px dashed #999999;
+    margin-top:12px;
+    margin-bottom:12px;
+}

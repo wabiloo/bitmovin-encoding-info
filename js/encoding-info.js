@@ -375,11 +375,13 @@ function hideManifestTable() {
 }
 
 function button_showPlayer(manifest_type, streamingUrl) {
-    let button = `<button type="button" class="btn btn-xs btn-primary btn-start-play" data-streamType="${manifest_type}" data-streamUrl="${streamingUrl}">play</button>`;
-    // button.data('streamType', manifest_type);
-    // button.data('streamUrl', streamingUrl);
-    return button
+    return `<button type="button" class="btn btn-xs btn-primary btn-start-play" data-streamType="${manifest_type}" data-streamUrl="${streamingUrl}">play</button>`;
 }
+
+function button_viewFile(url) {
+    return `<button type="button" class="btn btn-xs btn-warning btn-view-file" data-url="${url}">view</button>`;
+}
+
 
 function button_externalLink(name, url) {
     return $(`<a class="btn btn-xs btn-secondary" href="${url}" target="_blank">${name}</a>`);
@@ -419,8 +421,16 @@ function addManifestRow(manifest, urls, manifestTree) {
     let urlTableBody = $('<tbody>');
 
     urlTableBody.append(addUrlRow('path', urls.outputPath));
-    urlTableBody.append(addUrlRow('storage', urls.storageUrl, [button_externalLink("console", urls.consoleUrl)]));
-    urlTableBody.append(addUrlRow('streaming', urls.streamingUrl, [button_showPlayer(manifest.type, urls.streamingUrl)]));
+    urlTableBody.append(
+        addUrlRow(
+            'storage',
+            urls.storageUrl,
+            [button_externalLink("console", urls.consoleUrl)]));
+    urlTableBody.append(
+        addUrlRow(
+            'streaming',
+            urls.streamingUrl,
+            [button_showPlayer(manifest.type, urls.streamingUrl), button_viewFile(urls.streamingUrl)]));
 
     urlTable.append(urlTableBody);
 
@@ -573,6 +583,13 @@ function loadPlayer(streamType, stream) {
     );
 }
 
+function loadViewer(url) {
+    showLoader();
+    $('#viewer-modal').modal('show');
+    showFileContentFromUrl(url);
+    hideLoader();
+}
+
 $(document).on('click', '.btn-start-play', function(event) {
     event.stopPropagation();
     event.stopImmediatePropagation();
@@ -584,6 +601,18 @@ $(document).on('click', '.btn-start-play', function(event) {
 
     loadPlayer(streamType, stream)
 });
+
+$(document).on('click', '.btn-view-file', function(event) {
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+
+    let btn = $(this);
+
+    let fileUrl = btn.data('url');
+
+    loadViewer(fileUrl)
+});
+
 
 $(document).on('hide.bs.modal', '#player-modal', function (e) {
     console.log("Pausing the player");
