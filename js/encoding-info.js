@@ -14,9 +14,6 @@ let mapMuxingsToStreams = {};
 
 let drmKeys = {};
 
-numeral.zeroFormat('N/A');
-numeral.nullFormat('N/A');
-
 async function processEncoding(apiHelper, encodingId) {
     await fetchEncodingInformation(apiHelper, encodingId);
     await fetchMuxingOutputInformation(apiHelper, encodingId);
@@ -543,7 +540,16 @@ function dataTable_bitrate(data, type, row, meta) {
     if (type === "sort" || type === 'type') {
         return data ? parseInt(data) : null;
     } else {
-        return data ? numeral(data).format('0 b') : undefined;
+        return toReadableBitrate(data);
+    }
+}
+
+function dataTable_duration(data, type, row, meta) {
+    if (data) {
+        return moment().startOf('day').seconds(data).format("hh:mm:ss");
+    }
+    else {
+        return undefined;
     }
 }
 

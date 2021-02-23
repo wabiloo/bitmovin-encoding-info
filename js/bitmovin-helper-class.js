@@ -352,7 +352,7 @@ class BitmovinHelper {
         let mediaEndpointPath = this.getMediaTypeFromClassName(codecConfig.constructor.name);
         let codecLabel = this.getCodecNameFromClass(codecConfig.constructor.name);
 
-        let basename = `${codecLabel} ${numeral(codecConfig.bitrate).format('0b')}`;
+        let basename = `${codecLabel} ${toReadableBitrate(codecConfig.bitrate)}`;
 
         switch (mediaEndpointPath) {
             case "audio":
