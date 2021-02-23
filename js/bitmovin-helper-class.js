@@ -136,6 +136,14 @@ class BitmovinHelper {
         }
     }
 
+    getStreamInputDetails(encodingId, streamId) {
+        try {
+            return this._api.encoding.encodings.streams.input.get(encodingId, streamId);
+        } catch (e) {
+            console.error("Stream Input Details not found for stream: " + streamId)
+        }
+    }
+
     // --- Bitmovin Endpoint and Object name remapping
 
     getOutputNameFromClass(classname) {

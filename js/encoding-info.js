@@ -54,6 +54,9 @@ async function fetchStreamInformation(apiHelper, encodingId) {
         console.log("Filters", filters);
         const filterTable = this.makeStreamFilterTable(filters);
 
+        const inputInfo = await apiHelper.getStreamInputDetails(encodingId, stream.id);
+        console.log("Input", inputInfo);
+
         // const inputStreams = await this.fetchInputStreamInformation(apiHelper, encodingId, stream);
         const inputStreamsTable = await this.makeInputStreamChainTable(apiHelper, encodingId, stream.inputStreams[0], "(stream)");
 
@@ -69,7 +72,8 @@ async function fetchStreamInformation(apiHelper, encodingId) {
             "jsonstream": prettyPayload(stream),
             "jsoncodec": prettyPayload(codecConfig),
             "jsonfilters": filterTable.prop('outerHTML'),
-            "inputstreams": inputStreamsTable.prop('outerHTML')
+            "inputstreams": inputStreamsTable.prop('outerHTML'),
+            "inputinfo": prettyPayload(inputInfo)
         };
 
         addStreamRow(row);
@@ -1016,6 +1020,12 @@ $(document).ready(function () {
             {
                 data: "inputstreams",
                 title: "Input Streams",
+                // controls DataTables() responsive and force a child row
+                className: "none copy-me"
+            },
+            {
+                data: "inputinfo",
+                title: "Input Analysis",
                 // controls DataTables() responsive and force a child row
                 className: "none copy-me"
             }
