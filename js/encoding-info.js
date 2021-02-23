@@ -540,13 +540,13 @@ function dataTable_bitrate(data, type, row, meta) {
     if (type === "sort" || type === 'type') {
         return data ? parseInt(data) : null;
     } else {
-        return toReadableBitrate(data);
+        return formatBitrate(data);
     }
 }
 
 function dataTable_duration(data, type, row, meta) {
     if (data) {
-        return moment().startOf('day').seconds(data).format("hh:mm:ss");
+        return formatDuration(data)
     }
     else {
         return undefined;
