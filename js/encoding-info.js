@@ -42,6 +42,8 @@ async function fetchEncodingInformation(apiHelper, encodingId) {
 
 async function fetchStreamInformation(apiHelper, encodingId) {
     const streams = await apiHelper.getStreamsForEncodingId(encodingId);
+    var inputsFound = [];
+
     streams.items.forEach(async function(stream) {
         console.log("Partial stream:", stream);
 
@@ -72,12 +74,36 @@ async function fetchStreamInformation(apiHelper, encodingId) {
             "jsonstream": prettyPayload(stream),
             "jsoncodec": prettyPayload(codecConfig),
             "jsonfilters": filterTable.prop('outerHTML'),
-            "inputstreams": inputStreamsTable.prop('outerHTML'),
+            "inputstreams": inputStreamsTable[0].prop('outerHTML'),
             "inputinfo": prettyPayload(inputInfo)
         };
 
         addStreamRow(row);
-    })
+
+        // only add inputs not yet met for other streams
+        // TODO - handle IngestInputStreams as well
+
+        var inputPath = stream.inputStreams[0].inputPath || inputStreamsTable[1];
+        if (!inputPath) {
+            inputPath = "n/a"
+        }
+
+        if (!_.includes(inputsFound, inputPath)) {
+            let inputrow = {
+                "path": inputPath,
+                "duration": inputInfo.duration,
+                "bitrate": inputInfo.bitrate,
+                "streamids": "(not implemented)",
+                "videoStreams": inputInfo.videoStreams.length,
+                "audioStreams": inputInfo.audioStreams.length,
+                "json": prettyPayload(inputInfo)
+            };
+
+            addInputRow(inputrow);
+            inputsFound.push(inputPath)
+        }
+    });
+
 }
 
 async function fetchInputStreamInformation(apiHelper, encodingId, inputStreamId) {
@@ -87,7 +113,7 @@ async function fetchInputStreamInformation(apiHelper, encodingId, inputStreamId)
     return inputStreamDetails
 }
 
-async function makeInputStreamChainTable(apiHelper, encodingId, json, initialTitle) {
+async function makeInputStreamChainTable(apiHelper, encodingId, json, initialTitle, inputPath = null) {
 
     initialTitle = initialTitle || "(top)";
 
@@ -109,10 +135,17 @@ async function makeInputStreamChainTable(apiHelper, encodingId, json, initialTit
         const inputStreamDetails = await apiHelper.getInputStreamDetails(encodingId, inputStreamId);
         console.log("Input Stream details:", inputStreamDetails);
 
-        cell2.append(await makeInputStreamChainTable(apiHelper, encodingId, inputStreamDetails, inputStreamDetails.type))
+        if (_.has(inputStreamDetails, "inputPath")) {
+            inputPath = inputStreamDetails.inputPath;
+        }
+
+        res = await makeInputStreamChainTable(apiHelper, encodingId, inputStreamDetails, inputStreamDetails.type, inputPath);
+        cell2.append(res[0]);
+        // bubble the inputPath up the chain
+        inputPath = res[1];
     }));
 
-    return table
+    return [table, inputPath]
 }
 
 function collectInputStreamIds(obj, res) {
@@ -419,6 +452,13 @@ function addStreamRow(row_info) {
     // hack suggested at https://datatables.net/forums/discussion/comment/156646#Comment_156646 to avoid race condition
     //setTimeout(function(){ streamTable.draw(); }, 3000);
 }
+
+function addInputRow(row_info) {
+    bmTables.inputs.row.add(row_info).draw();
+    // hack suggested at https://datatables.net/forums/discussion/comment/156646#Comment_156646 to avoid race condition
+    //setTimeout(function(){ streamTable.draw(); }, 3000);
+}
+
 
 function addManifestRow(manifest, urls, manifestTree) {
     let urlTable = $('<table class="table table-sm table-hover urls"></table>');
@@ -1034,6 +1074,69 @@ $(document).ready(function () {
         rowGroup: {
             dataSrc: ['media','codec']
         },
+        responsive: {
+            details: {
+                type: 'column',
+                renderer: dataTable_renderHiddenColumns,
+                target: '.more'  // jQuery selector as per doc - https://datatables.net/forums/discussion/57793/issue-with-using-responsive-and-a-last-column#latest
+            }
+        },
+        rowCallback: function (row, data, index) {
+            $(row).addClass(data.streamid);
+        }
+    });
+
+    bmTables.inputs = $('#inputs').DataTable({
+        dom: 'ift',
+        ordering: true,
+        orderFixed: [[0, "asc"]],
+        order: [[ 1, "asc" ],[ 2, "desc" ]],
+        paging: false,
+        columns: [
+            {
+                data: null,
+                title: "More",
+                // a column just for the button controls
+                className: 'control more',
+                orderable: false,
+                defaultContent: '',
+            },
+            {
+                data: "path",
+                title: "Path"
+            },
+            {
+                data: "duration",
+                title: "Duration",
+                render: dataTable_duration
+            },
+            {
+                data: "bitrate",
+                title: "Bitrate",
+                defaultContent: "-",
+                type: 'number',
+                render: dataTable_bitrate
+            },
+            {
+                data: "videoStreams",
+                title: "Video Streams"
+            },
+            {
+                data: "audioStreams",
+                title: "Audio Streams"
+            },
+            {
+                data: "streamids",
+                title: "Stream Ids",
+                className: "none copy-me"
+            },
+            {
+                data: "json",
+                title: "Input Analysis",
+                // controls DataTables() responsive and force a child row
+                className: "none copy-me"
+            }
+        ],
         responsive: {
             details: {
                 type: 'column',

@@ -19,6 +19,7 @@
     <script src="node_modules/@bitmovin/api-sdk/dist/bitmovin-api-sdk.browser.js" type="application/javascript"></script>
     <script src="https://cdn.bitmovin.com/player/web/8/bitmovinplayer.js" type="text/javascript" ></script>
     <script src="node_modules/numeral/numeral.js" type="text/javascript"></script>
+    <script src="node_modules/moment/moment.js" type="text/javascript"></script>
 
     <script src="js/json-pretty-print.js" type="application/javascript"></script>
     <script src="js/bitmovin-helper-class.js" type="application/javascript"></script>
@@ -125,6 +126,22 @@
             </div>
             <div class="col">
                 <table class="table table-lg stripe" id="streams" style="width: 100%">
+                    <thead class="thead-light">
+                    </thead>
+                    <tbody>
+
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <a id="inputs-anchor" class="anchor"></a>
+        <div class="row">
+            <div class="col-1 header">
+                <h2>Inputs</h2>
+            </div>
+            <div class="col">
+                <table class="table table-lg stripe" id="inputs" style="width: 100%">
                     <thead class="thead-light">
                     </thead>
                     <tbody>
