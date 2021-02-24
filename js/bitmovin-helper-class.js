@@ -23,7 +23,8 @@ class BitmovinHelper {
     getMuxingDetails(encodingId, muxing) {
         let muxingEndpointPath = this.getMuxingEndpointFromClassName(muxing.constructor.name);
         try {
-            return this._api.encoding.encodings.muxings[muxingEndpointPath].get(encodingId, muxing.id);
+            // return this._api.encoding.encodings.muxings[muxingEndpointPath].get(encodingId, muxing.id);
+            return this._api.encoding.encodings.muxings.get(encodingId, muxing.id);
         } catch (e) {
             console.error("Muxing type not recognised or handled: " + muxing.constructor.name)
         }
@@ -100,7 +101,8 @@ class BitmovinHelper {
         let mediaEndpointPath = this.getMediaTypeFromClassName(className);
         let codecEndpointPath = this.getCodecEndpointFromClassName(className);
         try {
-            return this._api.encoding.configurations[mediaEndpointPath][codecEndpointPath].get(configurationId);
+            // return this._api.encoding.configurations[mediaEndpointPath][codecEndpointPath].get(configurationId);
+            return this._api.encoding.configurations.get(configurationId);
         } catch (e) {
             console.error("Codec configuration type not recognised or handled: " + className)
         }
