@@ -755,6 +755,12 @@ $(document).on('click', '.follow-ref-muxing', function(event) {
 
 $(document).on('submit', '#inputEncodings', encodingsChanged);
 
+$(document).on('click', '#go-compare', function(event) {
+    let encodingId = $('#inputEncodingId').val();
+    location.href=`compare.html?apiKey=${apiKey}&tenantOrgId=${tenantOrgId}&encodingIds=${encodingId}`
+});
+
+
 function encodingsChanged(e) {
     e.stopPropagation();
     e.stopImmediatePropagation();
