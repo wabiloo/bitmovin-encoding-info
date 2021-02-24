@@ -46,9 +46,10 @@
             <!--        <div class="loader mr-sm-4">-->
             <!--            <img src="img/loading_animation_dark.gif" height="30">-->
             <!--        </div>-->
-            <button type="button" class="btn btn-info" id="go-compare">Compare</button>
+            <button type="button" class="btn btn-secondary" id="go-compare">Compare</button>
             <button type="button" class="btn btn-warning" data-toggle="modal" data-target="#viewer-modal">Viewer</button>
             <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#player-modal">Player</button>
+            <button type="button" class="btn btn-info" data-toggle="modal" data-target="#helpModal">Help</button>
 
         </div>
     </nav>
@@ -207,6 +208,33 @@
                     </div>
 
                     <div id="content-viewer" class="container"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="helpModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalLabel">Help</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <h3>What for?</h3>
+                    <p>What do you want help for?  This is quite a straightforward tool...
+                    </p>
+
+                    <h3>Missing info?</h3>
+                    <p>Are you expecting to see some information in here that you cannot see?  Missing streams?  Missing muxings?</p>
+                    <p>This tool may simply not be up to date and not use the latest version of the Bitmovin SDK. Or maybe what you're searching for simply has not been implemented (yet)</p>
+                    <p>Feel free to reach out to <a href="mailto:fabre.lambeau@bitmovin.com">fabre.lambeau@bitmovin.com</a> if you would like a new feature. Or why not contribute yourself to the code?
+                        The <a href="https://github.com/wabiloo/bitmovin-encoding-info" target="_blank">Github</a> repo would love to receive your PRs!</p>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
