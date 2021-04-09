@@ -10,7 +10,7 @@ function formatBitrate(data) {
         var out = Math.max(data, 0.1).toFixed(1) + byteUnits[i];
         return out;
     } else {
-        return undefined;
+        return "";
     }
 }
 

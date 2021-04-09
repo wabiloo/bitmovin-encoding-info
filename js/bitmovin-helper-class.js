@@ -348,21 +348,25 @@ class BitmovinHelper {
         }));
     }
 
-    // --- Codec naming
+    // --- Codec and stream naming
 
-    computeCodecConfigName(codecConfig) {
+    makeStreamLabel(codecConfig, stream) {
         let mediaEndpointPath = this.getMediaTypeFromClassName(codecConfig.constructor.name);
         let codecLabel = this.getCodecNameFromClass(codecConfig.constructor.name);
 
-        let basename = `${codecLabel} ${formatBitrate(codecConfig.bitrate)}`;
-
         switch (mediaEndpointPath) {
             case "audio":
-                return `${basename} ChannelLayout.${codecConfig.channelLayout}`;
+                return `ChannelLayout.${codecConfig.channelLayout} @ ${formatBitrate(codecConfig.bitrate)}`;
                 break;
             case "video":
                 let resolution = codecConfig.width || codecConfig.height ? codecConfig.width +'x'+ codecConfig.height : "";
-                return `${basename} ${resolution}`;
+                let framerate = codecConfig.rate;
+                let streamMode = "";
+                if (stream !== undefined && stream.mode.startsWith("PER_TITLE_TEMPLATE")) {
+                    streamMode = "(PT)"
+                }
+
+                return `${resolution} ${framerate}fps @ ${formatBitrate(codecConfig.bitrate)}${streamMode}`;
             default:
                 return "(not handled by this tool correctly)";
         }

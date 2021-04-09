@@ -20,11 +20,14 @@
     <script src="https://cdn.bitmovin.com/player/web/8/bitmovinplayer.js" type="text/javascript" ></script>
     <script src="node_modules/moment/moment.js" type="text/javascript"></script>
 
+    <script src="https://cdn.jsdelivr.net/npm/@hpcc-js/wasm/dist/index.min.js"></script>
+
     <script src="js/json-pretty-print.js" type="application/javascript"></script>
     <script src="js/bitmovin-helper-class.js" type="application/javascript"></script>
     <script src="js/file-viewer.js" type="application/javascript"></script>
     <script src="js/utils.js" type="application/javascript"></script>
     <script src="js/encoding-info.js" type="application/javascript"></script>
+
 </head>
 <body>
 
@@ -35,6 +38,7 @@
         </a>
         <div class="collapse navbar-collapse">
             <div class="navbar-nav">
+                <a class="nav-item nav-link" href="#graph-anchor">Graph</a>
                 <a class="nav-item nav-link" href="#manifests-anchor">Manifests</a>
                 <a class="nav-item nav-link" href="#muxings-anchor">Muxings</a>
                 <a class="nav-item nav-link" href="#streams-anchor">Streams</a>
@@ -88,6 +92,21 @@
                     <tbody>
                     </tbody>
                 </table>
+            </div>
+        </div>
+
+        <a id="graph-anchor" class="anchor"></a>
+        <div class="row">
+            <div class="col-1 header">
+                <h2>Graph</h2>
+            </div>
+            <div class="col">
+                <button class="btn btn-secondary btn-sm" type="button" data-toggle="collapse" data-target="#collapseGraph" aria-expanded="false" aria-controls="collapseGraph">
+                    Show graph
+                </button>
+                <div class="collapse" id="collapseGraph">
+                    <div id="graphviz" style="width: 100%"></div>
+                </div>
             </div>
         </div>
 

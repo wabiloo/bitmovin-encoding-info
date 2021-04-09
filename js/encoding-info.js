@@ -14,12 +14,18 @@ let mapMuxingsToStreams = {};
 
 let drmKeys = {};
 
+let graphDef = {
+    "nodes": {},
+    "edges": []
+}
+
 async function processEncoding(apiHelper, encodingId) {
     await fetchEncodingInformation(apiHelper, encodingId);
     await fetchMuxingOutputInformation(apiHelper, encodingId);
     await fetchStreamInformation(apiHelper, encodingId);
     await fetchManifestOutputInformation(apiHelper, encodingId);
 
+    await displayGraph();
     await initPlayer(encodingId);
 }
 
@@ -31,7 +37,9 @@ async function fetchEncodingInformation(apiHelper, encodingId) {
         const encodingStart = await apiHelper.getEncodingStart(encodingId);
         console.log(encodingStart);
 
-        addEncodingRow(encoding, encodingStart)
+        addEncodingRow(encoding, encodingStart);
+
+        addGraphNode_fromObject(encoding, "", {fillcolor: "#67C5CB"}, "encoding")
     } catch (e) {
         throwBitmovinError(e)
     }
@@ -44,10 +52,16 @@ async function fetchStreamInformation(apiHelper, encodingId) {
     streams.items.forEach(async function(stream) {
         console.log("Partial stream:", stream);
 
+        addGraphNode_fromObject(stream, "", {fillcolor: "#F7CE71"}, "stream");
+        addGraphEdge(encodingId, stream.id);
+
         const codecType = await apiHelper.getCodecConfigurationType(stream.codecConfigId);
         console.log("Codec Type: ", codecType);
         const codecConfig = await apiHelper.getCodecConfigurationDetails(stream.codecConfigId, codecType.type);
         console.log("Codec: ", codecConfig);
+
+        addGraphNode_fromObject(codecConfig, apiHelper.makeStreamLabel(codecConfig, stream), {fillcolor: "#7FAC58"}, "codec");
+        addGraphEdge(stream.id, codecConfig.id);
 
         const filters = await this.fetchFiltersInformation(apiHelper, encodingId, stream.id, []);
         console.log("Filters", filters);
@@ -64,7 +78,7 @@ async function fetchStreamInformation(apiHelper, encodingId) {
             "mode": stream.mode,
             "media": apiHelper.getMediaTypeFromClassName(codecConfig.constructor.name),
             "codec": apiHelper.getCodecNameFromClass(codecConfig.constructor.name),
-            "label": apiHelper.computeCodecConfigName(codecConfig),
+            "label": apiHelper.makeStreamLabel(codecConfig, stream),
             "width": codecConfig.width,
             "height": codecConfig.height,
             "bitrate": codecConfig.bitrate,
@@ -188,9 +202,16 @@ async function fetchMuxingOutputInformation(apiHelper, encodingId) {
     muxings.items.forEach(async function(muxing)  {
         console.log("Partial muxing:", muxing);
 
+        addGraphNode_fromObject(muxing, "", {fillcolor: '#DCB1F2'}, "muxing", muxing.id);
+        // addGraphEdge(encodingId, muxing.id);
+
         let streams = apiHelper.getStreamIdsFromMuxing(muxing);
         // record for later use
         mapMuxingsToStreams[muxing.id] = streams;
+
+        streams.forEach(streamId => {
+            addGraphEdge(streamId, muxing.id);
+        });
 
         // TODO - determine whether the partial vs full representation are different (and therefore whether this additional call is required)
         await apiHelper.getMuxingDetails(encodingId, muxing).then(fullmuxing => {
@@ -198,7 +219,10 @@ async function fetchMuxingOutputInformation(apiHelper, encodingId) {
 
             if (fullmuxing.outputs) {
                 fullmuxing.outputs.forEach(muxingOutput => {
-                    allMuxings[muxing.id] = processMuxingEncodingOutput(apiHelper, muxingOutput, fullmuxing, streams)})
+                    allMuxings[muxing.id] = processMuxingEncodingOutput(apiHelper, muxingOutput, fullmuxing, streams);
+                    addGraphNode(muxingOutput.outputId, muxingOutput.outputId, "", "Output", {fillcolor: "#B3B3B3"}, "output");
+                    addGraphEdge(fullmuxing.id, muxingOutput.outputId, {color: "#B3B3B3"});
+                })
             }
         });
 
@@ -209,9 +233,15 @@ async function fetchMuxingOutputInformation(apiHelper, encodingId) {
             apiHelper.getMuxingDrmDetails(encodingId, muxing, drm).then(fulldrm => {
                 console.log("DRM info:", fulldrm);
 
+                addGraphNode_fromObject(fulldrm, "", {fillcolor: "#F89C73"}, "muxing", muxing.id);
+                addGraphEdge(muxing.id, fulldrm.id);
+
                 if (fulldrm.outputs) {
                     fulldrm.outputs.forEach(drmOutput => {
-                        allMuxings[drm.id] = processMuxingDrmEncodingOutput(apiHelper, drmOutput, muxing, fulldrm, streams)})
+                        allMuxings[drm.id] = processMuxingDrmEncodingOutput(apiHelper, drmOutput, muxing, fulldrm, streams);
+                        addGraphNode(drmOutput.outputId, drmOutput.outputId, "", "Output", {fillcolor: "#B3B3B3"}, "output");
+                        addGraphEdge(fulldrm.id, drmOutput.outputId, {color: "#B3B3B3"});
+                    })
                 }
 
                 // add to the global table, for player decryption
@@ -292,7 +322,15 @@ async function fetchManifestOutputInformation(apiHelper, encodingId) {
     manifests.forEach(manifest => {
         console.log(manifest);
 
-        manifest.outputs.forEach(manifestOutput => processManifestEncodingOutput(apiHelper, manifestOutput, manifest));
+        addGraphNode_fromObject(manifest, "", {fillcolor: "#C9DB73"}, "encoding");
+        addGraphEdge(manifest.id, encodingId);
+
+        manifest.outputs.forEach(manifestOutput => {
+            processManifestEncodingOutput(apiHelper, manifestOutput, manifest);
+
+            addGraphNode(manifestOutput.outputId, manifestOutput.outputId, "", "Output", {fillcolor: "#B3B3B3"}, "output");
+            addGraphEdge(manifest.id, manifestOutput.outputId, {color: "#B3B3B3"});
+        });
     });
 
     if (manifests.length === 0) {
@@ -566,6 +604,129 @@ function dataTable_renderHiddenColumns(api, rowIdx, columns ) {
     return data ?
         $('<table class="hidden-columns"/>').append( data ) :
         false;
+}
+
+// === Graphviz functions
+
+function addGraphNode(id, name, label="", type, attributes, rank, cluster) {
+    const defaults = {
+        label: `<B>${type}</B><br/>${label}<br/>${name}`,
+        shape: 'box',
+        fontsize: 10,
+        style: 'filled'
+    };
+
+    graphDef.nodes[id] = {
+        id: id,
+        name: name,
+        type: type,
+        rank: rank,
+        cluster: cluster,
+        attributes: Object.assign({}, defaults, attributes)
+    }
+}
+function addGraphNode_fromObject(resource, label="", attributes={}, rank, cluster) {
+    if ("ignoredBy" in resource && resource.ignoredBy.length > 0) {
+        attributes['style'] = "filled,dashed"
+    }
+
+    addGraphNode(resource.id, resource.id, label, resource.constructor.name, attributes, rank, cluster)
+}
+function addGraphEdge(from_id, to_id, attributes={}) {
+    graphDef.edges.push({
+        from_id: from_id,
+        to_id: to_id,
+        attributes: attributes
+    })
+}
+
+function makeDotDoc() {
+    function groupBy(arr, prop) {
+        const map = new Map(Array.from(arr, obj => [obj[prop], []]));
+        arr.forEach(obj => map.get(obj[prop]).push(obj));
+        return Array.from(map.values());
+    }
+    groupedNodes = groupBy(Object.values(graphDef.nodes), "rank");
+    clusterNodes = groupBy(Object.values(graphDef.nodes), "cluster");
+
+    var dot = `
+    digraph G {
+      rankdir="LR";
+      fontsize=10;
+    `;
+    // Object.values(graphDef.nodes).forEach(node => {
+    //     dot += `"${node.id}" [`;
+    //     var attrs = [];
+    //     Object.entries(node.attributes).forEach(([k, v]) => {
+    //         attrs.push(`${k}=<${v}>`)
+    //     });
+    //     dot += attrs.join(",");
+    //     dot += `];\n`;
+    // });
+
+    // groupedNodes.forEach(group => {
+    //     dot += "{ rank=same; \n";
+    //     group.forEach(node => {
+    //         dot += `"${node.id}" [`;
+    //         var attrs = [];
+    //         Object.entries(node.attributes).forEach(([k, v]) => {
+    //             attrs.push(`${k}=<${v}>`)
+    //         });
+    //         dot += attrs.join(",");
+    //         dot += `];\n`;
+    //     });
+    //
+    //     dot += "}\n";
+    // });
+
+    clusterNodes.forEach(group => {
+        if (group[0].cluster !== undefined) {
+            dot += `subgraph "cluster_${group[0].cluster}" { \n`;
+        }
+        group.forEach(node => {
+            dot += `"${node.id}" [`;
+            var attrs = [];
+            Object.entries(node.attributes).forEach(([k, v]) => {
+                attrs.push(`${k}=<${v}>`)
+            });
+            dot += attrs.join(",");
+            dot += `];\n`;
+        });
+        if (group[0].cluster !== undefined) {
+            dot += "}\n";
+        }
+    });
+
+    graphDef.edges.forEach(edge => {
+        dot += `"${edge.from_id}" -> "${edge.to_id}" `;
+
+        var attrs = [];
+        Object.entries(edge.attributes).forEach(([k, v]) => {
+            attrs.push(`${k}=<${v}>`)
+        });
+        if (attrs.length) {
+            dot += "[";
+            dot += attrs.join(",");
+            dot += `]`;
+        }
+        dot += ";\n";
+
+    });
+
+    dot += "}";
+
+    return dot
+}
+
+async function displayGraph() {
+    var hpccWasm = window["@hpcc-js/wasm"];
+    const dot = makeDotDoc();
+
+    hpccWasm.graphvizSync().then(graphviz => {
+        const div = document.getElementById("graphviz");
+        // Synchronous call to layout
+        div.innerHTML = graphviz.layout(dot, "svg", "dot");
+    });
 }
 
 // === Bitmovin Player functions
