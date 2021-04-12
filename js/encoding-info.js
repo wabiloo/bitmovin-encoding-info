@@ -62,7 +62,7 @@ async function fetchStreamInformation(apiHelper, encodingId) {
         console.log("Codec: ", codecConfig);
 
         addGraphNode_fromObject(codecConfig, apiHelper.makeStreamLabel(codecConfig, stream), {fillcolor: "#7FAC58"}, "codec");
-        addGraphEdge(stream.id, codecConfig.id);
+        addGraphEdge(stream.id, codecConfig.id, {color: "#7FAC58"});
 
         stream.inputStreams.forEach(streamInput => {
             if (streamInput.inputPath && streamInput.inputPath.length > 0) {
@@ -682,7 +682,8 @@ function makeDotDoc() {
     var dot = `
     digraph G {
       rankdir="LR";
-      fontsize=10;
+      node[fontsize=8, fontname=Arial];
+      edge[arrowsize=0.6];
     `;
     // Object.values(graphDef.nodes).forEach(node => {
     //     dot += `"${node.id}" [`;
