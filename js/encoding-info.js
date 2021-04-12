@@ -52,7 +52,8 @@ async function fetchStreamInformation(apiHelper, encodingId) {
     streams.items.forEach(async function(stream) {
         console.log("Partial stream:", stream);
 
-        addGraphNode_fromObject(stream, "", {fillcolor: "#F7CE71"}, "stream");
+        let shape = stream.mode.startsWith("PER_TITLE_TEMPLATE") ? "component" : "box";
+        addGraphNode_fromObject(stream, stream.mode.valueOf(), {fillcolor: "#F7CE71", shape: shape}, "stream");
         addGraphEdge(encodingId, stream.id);
 
         const codecType = await apiHelper.getCodecConfigurationType(stream.codecConfigId);
