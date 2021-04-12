@@ -16,7 +16,7 @@ let drmKeys = {};
 
 let graphDef = {
     "nodes": {},
-    "edges": []
+    "edges": {}
 }
 
 async function processEncoding(apiHelper, encodingId) {
@@ -39,7 +39,7 @@ async function fetchEncodingInformation(apiHelper, encodingId) {
 
         addEncodingRow(encoding, encodingStart);
 
-        addGraphNode_fromObject(encoding, "", {fillcolor: "#67C5CB"}, "encoding")
+        // addGraphNode_fromObject(encoding, "", {fillcolor: "#67C5CB"}, "encoding")
     } catch (e) {
         throwBitmovinError(e)
     }
@@ -49,12 +49,12 @@ async function fetchStreamInformation(apiHelper, encodingId) {
     const streams = await apiHelper.getStreamsForEncodingId(encodingId);
     var inputsFound = [];
 
-    streams.items.forEach(async function(stream) {
+    await Promise.all(streams.items.map(async(stream) => {
         console.log("Partial stream:", stream);
 
-        let shape = stream.mode.startsWith("PER_TITLE_TEMPLATE") ? "component" : "box";
-        addGraphNode_fromObject(stream, stream.mode.valueOf(), {fillcolor: "#F7CE71", shape: shape}, "stream");
-        addGraphEdge(encodingId, stream.id);
+        let shape = stream.mode && stream.mode.startsWith("PER_TITLE_TEMPLATE") ? "component" : "box";
+        addGraphNode_fromObject(stream, stream.mode || "", {fillcolor: "#F7CE71", shape: shape}, "stream");
+        // addGraphEdge(encodingId, stream.id);
 
         const codecType = await apiHelper.getCodecConfigurationType(stream.codecConfigId);
         console.log("Codec Type: ", codecType);
@@ -64,6 +64,19 @@ async function fetchStreamInformation(apiHelper, encodingId) {
         addGraphNode_fromObject(codecConfig, apiHelper.makeStreamLabel(codecConfig, stream), {fillcolor: "#7FAC58"}, "codec");
         addGraphEdge(stream.id, codecConfig.id);
 
+        stream.inputStreams.forEach(streamInput => {
+            if (streamInput.inputPath && streamInput.inputPath.length > 0) {
+                let shortenedPath = streamInput.inputPath;
+                if (shortenedPath.includes("/")) {
+                    shortenedPath = ".../" + streamInput.inputPath.substring(streamInput.inputPath.lastIndexOf("/") + 1);
+                }
+                addGraphNode(streamInput.inputId, streamInput.inputId, "", "Input", {fillcolor: "#B3B3B3"}, "input");
+                addGraphNode(shortenedPath, shortenedPath, "", "File", {fillcolor: "white", shape: "note"}, "input");
+                addGraphEdge(streamInput.inputId, shortenedPath);
+                addGraphEdge(shortenedPath, stream.id)
+            }
+        });
+
         const filters = await this.fetchFiltersInformation(apiHelper, encodingId, stream.id, []);
         console.log("Filters", filters);
         const filterTable = this.makeStreamFilterTable(filters);
@@ -72,7 +85,7 @@ async function fetchStreamInformation(apiHelper, encodingId) {
         console.log("Input", inputInfo);
 
         // const inputStreams = await this.fetchInputStreamInformation(apiHelper, encodingId, stream);
-        const inputStreamsTable = await this.makeInputStreamChainTable(apiHelper, encodingId, stream.inputStreams[0], "(stream)");
+        const inputStreamsTable = await this.makeInputStreamChainTable(apiHelper, encodingId, stream.inputStreams[0], stream.id,"(stream)");
 
         let row = {
             "streamid": stream.id,
@@ -114,18 +127,18 @@ async function fetchStreamInformation(apiHelper, encodingId) {
             addInputRow(inputrow);
             inputsFound.push(inputPath)
         }
-    });
+    }));
 
 }
 
 async function fetchInputStreamInformation(apiHelper, encodingId, inputStreamId) {
-    const inputStreamDetails = await apiHelper.getInputStreamDetails(encodingId, inputStreamId);
-    console.log("Input Stream details:", inputStreamDetails);
+    const inputStream = await apiHelper.getInputStreamDetails(encodingId, inputStreamId);
+    console.log("Input Stream details:", inputStream);
 
-    return inputStreamDetails
+    return inputStream
 }
 
-async function makeInputStreamChainTable(apiHelper, encodingId, json, initialTitle, inputPath = null) {
+async function makeInputStreamChainTable(apiHelper, encodingId, parent, parentId, initialTitle, inputPath = null) {
 
     initialTitle = initialTitle || "(top)";
 
@@ -138,20 +151,32 @@ async function makeInputStreamChainTable(apiHelper, encodingId, json, initialTit
     let mainRow = $("<tr>").appendTo(body);
 
     let cell1 = $("<td>").appendTo(mainRow);
-    let jsonHtml = $(prettyPayload(json)).appendTo(cell1);
+    let jsonHtml = $(prettyPayload(parent)).appendTo(cell1);
 
     let cell2 = $("<td>").appendTo(mainRow);
 
-    let subInputStreamIds = collectInputStreamIds(json, []);
+    let subInputStreamIds = collectInputStreamIds(parent, []);
     await Promise.all(subInputStreamIds.map(async(inputStreamId) => {
-        const inputStreamDetails = await apiHelper.getInputStreamDetails(encodingId, inputStreamId);
-        console.log("Input Stream details:", inputStreamDetails);
+        const inputStream = await apiHelper.getInputStreamDetails(encodingId, inputStreamId);
+        console.log("Input Stream details:", inputStream);
 
-        if (_.has(inputStreamDetails, "inputPath")) {
-            inputPath = inputStreamDetails.inputPath;
+        addGraphNode_fromObject(inputStream, "", {fillcolor: "#9EBAF3"}, "input");
+        addGraphEdge(inputStreamId, parentId);
+
+        if (_.has(inputStream, "inputPath")) {
+            inputPath = inputStream.inputPath;
+            let shortenedPath = inputPath;
+            if (shortenedPath.includes("/")) {
+                shortenedPath = ".../" + inputPath.substring(inputPath.lastIndexOf("/") + 1);
+            }
+            addGraphNode(inputStream.inputId, inputStream.inputId, "", "Input", {fillcolor: "#B3B3B3"}, "input");
+            addGraphNode(shortenedPath, shortenedPath, "", "File", {fillcolor: "white", shape: "note"}, "input");
+            addGraphEdge(inputStream.inputId, shortenedPath);
+            addGraphEdge(shortenedPath, inputStreamId)
         }
 
-        res = await makeInputStreamChainTable(apiHelper, encodingId, inputStreamDetails, inputStreamDetails.type, inputPath);
+        parentId = parent.id || parent.inputStreamId;
+        res = await makeInputStreamChainTable(apiHelper, encodingId, inputStream, parentId, inputStream.type, inputPath);
         cell2.append(res[0]);
         // bubble the inputPath up the chain
         inputPath = res[1];
@@ -185,6 +210,9 @@ async function fetchFiltersInformation(apiHelper, encodingId, streamId) {
 
         const filterDetails = await apiHelper.getFilterDetails(filter.id, filterType);
         console.log("Filter details:", filterDetails);
+
+        addGraphNode_fromObject(filterDetails, "", {fillcolor: "#8BE0A4"}, "muxing", streamId);
+        addGraphEdge(streamId, filterDetails.id, {color: "#8BE0A4"});
 
         // async reduce returns a Promise on each iteration, so await is required
         // https://advancedweb.hu/how-to-use-async-functions-with-array-reduce-in-javascript/#asynchronous-reduce
@@ -324,7 +352,7 @@ async function fetchManifestOutputInformation(apiHelper, encodingId) {
         console.log(manifest);
 
         addGraphNode_fromObject(manifest, "", {fillcolor: "#C9DB73"}, "encoding");
-        addGraphEdge(manifest.id, encodingId);
+        // addGraphEdge(manifest.id, encodingId);
 
         manifest.outputs.forEach(manifestOutput => {
             processManifestEncodingOutput(apiHelper, manifestOutput, manifest);
@@ -634,11 +662,12 @@ function addGraphNode_fromObject(resource, label="", attributes={}, rank, cluste
     addGraphNode(resource.id, resource.id, label, resource.constructor.name, attributes, rank, cluster)
 }
 function addGraphEdge(from_id, to_id, attributes={}) {
-    graphDef.edges.push({
+    let key = `${from_id}_to_${to_id}`;
+    graphDef.edges[key] = {
         from_id: from_id,
         to_id: to_id,
         attributes: attributes
-    })
+    }
 }
 
 function makeDotDoc() {
@@ -698,7 +727,7 @@ function makeDotDoc() {
         }
     });
 
-    graphDef.edges.forEach(edge => {
+    Object.values(graphDef.edges).forEach(edge => {
         dot += `"${edge.from_id}" -> "${edge.to_id}" `;
 
         var attrs = [];

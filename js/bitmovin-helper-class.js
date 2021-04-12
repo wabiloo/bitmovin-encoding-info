@@ -362,7 +362,7 @@ class BitmovinHelper {
                 let resolution = codecConfig.width || codecConfig.height ? codecConfig.width +'x'+ codecConfig.height : "";
                 let framerate = codecConfig.rate;
                 let streamMode = "";
-                if (stream !== undefined && stream.mode.startsWith("PER_TITLE_TEMPLATE")) {
+                if (stream !== undefined && stream.mode && stream.mode.startsWith("PER_TITLE_TEMPLATE")) {
                     streamMode = "(PT)"
                 }
 
