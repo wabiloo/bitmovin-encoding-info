@@ -98,8 +98,8 @@ class BitmovinHelper {
 
     getCodecConfigurationDetails(configurationId, codecType) {
         let className = BitmovinApi.CodecConfiguration._discriminatorMapping[codecType];
-        let mediaEndpointPath = this.getMediaTypeFromClassName(className);
-        let codecEndpointPath = this.getCodecEndpointFromClassName(className);
+        // let mediaEndpointPath = this.getMediaTypeFromClassName(className);
+        // let codecEndpointPath = this.getCodecEndpointFromClassName(className);
         try {
             // return this._api.encoding.configurations[mediaEndpointPath][codecEndpointPath].get(configurationId);
             return this._api.encoding.configurations.get(configurationId);
@@ -182,13 +182,20 @@ class BitmovinHelper {
     }
 
     getMediaTypeFromClassName(classname) {
+        if (classname === undefined) {
+            return "unknown"
+        }
         if (classname.includes('Audio'))
             return "audio";
         if (classname.includes("Video"))
             return "video";
+
     }
 
     getCodecEndpointFromClassName(classname) {
+        if (classname === undefined) {
+            return "unknown"
+        }
         classname = classname.replace("Configuration", "");
         classname = classname.replace("Video", "");
         classname = classname.replace("Audio", "");

@@ -168,7 +168,7 @@ async function makeInputStreamChainTable(apiHelper, encodingId, parent, parentId
                 shortenedPath = ".../" + inputPath.substring(inputPath.lastIndexOf("/") + 1);
             }
             graphDef.addNode(inputStream.inputId, "Input", "", "input");
-            graphDef.addNode(shortenedPath, "File", "", "input");
+            graphDef.addNode(shortenedPath, "File", "", "inputfile");
             graphDef.addEdge(inputStream.inputId, shortenedPath);
             graphDef.addEdge(shortenedPath, inputStreamId)
         }
@@ -639,8 +639,8 @@ function addGraphOptions() {
     const optionDiv = document.getElementById("graph_options_nodes");
     optionDiv.innerHTML = "";
 
+    let i = 0;
     for (const [option, checked] of Object.entries(graphDef.getGraphOptions())) {
-        let i = 0;
         const checkedValue = checked ? "checked='checked'" : "";
         const optionHtml = `<div class="form-check form-check-inline">` +
             `<input class="form-check-input" type="checkbox" id="graphOption${i}" ${checkedValue} value="${option}">` +

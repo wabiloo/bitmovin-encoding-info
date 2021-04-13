@@ -2,7 +2,7 @@ class GraphBuilder {
 
     graphNodeCategoryGroups = {
         "encoding": [["encoding"], false],
-        "inputs": [["input", "inputstreams", "inputfile"], true],
+        "inputs": [["input", "inputstream", "inputfile"], true],
         "streams": [["stream", "codec"], true],
         "filters": [["filter"], true],
         "muxings": [["muxing", "drm"], true],
