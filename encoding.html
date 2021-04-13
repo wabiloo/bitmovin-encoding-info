@@ -103,13 +103,16 @@
                 <h2>Graph</h2>
             </div>
             <div class="col">
-                <button class="btn btn-secondary btn-sm" type="button" data-toggle="collapse" data-target="#collapseGraph" aria-expanded="false" aria-controls="collapseGraph">
-                    Show graph
-                </button>
-                <div class="collapse" id="collapseGraph">
-                    <div id="graphviz" style="width: 100%"></div>
+                <div>
+                    <span id="graph_options_nodes">
+                    </span>
+                    <button class="btn btn-secondary btn-sm" type="button" id="drawGraph">
+                        Draw graph
+                    </button>
                 </div>
+
             </div>
+            <div id="graphviz" style="width: 100%"></div>
         </div>
 
         <a id="manifests-anchor" class="anchor"></a>

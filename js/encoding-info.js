@@ -22,7 +22,8 @@ async function processEncoding(apiHelper, encodingId) {
     await fetchStreamInformation(apiHelper, encodingId);
     await fetchManifestOutputInformation(apiHelper, encodingId);
 
-    await displayGraph();
+    addGraphOptions();
+    // await displayGraph();
     await initPlayer(encodingId);
 }
 
@@ -68,7 +69,7 @@ async function fetchStreamInformation(apiHelper, encodingId) {
                     shortenedPath = ".../" + streamInput.inputPath.substring(streamInput.inputPath.lastIndexOf("/") + 1);
                 }
                 graphDef.addNode(streamInput.inputId, "Input", "", "input");
-                graphDef.addNode(shortenedPath,"File", "","file");
+                graphDef.addNode(shortenedPath,"File", "","inputfile");
                 graphDef.addEdge(streamInput.inputId, shortenedPath);
                 graphDef.addEdge(shortenedPath, stream.id)
             }
@@ -632,11 +633,33 @@ function dataTable_renderHiddenColumns(api, rowIdx, columns ) {
         false;
 }
 
-// === Graphviz functions
+// === Graph functions
+
+function addGraphOptions() {
+    const optionDiv = document.getElementById("graph_options_nodes");
+    optionDiv.innerHTML = "";
+
+    for (const [option, checked] of Object.entries(graphDef.getGraphOptions())) {
+        let i = 0;
+        const checkedValue = checked ? "checked='checked'" : "";
+        const optionHtml = `<div class="form-check form-check-inline">` +
+            `<input class="form-check-input" type="checkbox" id="graphOption${i}" ${checkedValue} value="${option}">` +
+            `<label class="form-check-label" for="graphOption${i}">${option}</label>` +
+            `</div>`;
+
+        optionDiv.innerHTML = optionDiv.innerHTML + optionHtml;
+        i++;
+    }
+}
 
 async function displayGraph() {
     var hpccWasm = window["@hpcc-js/wasm"];
-    const dot = graphDef.makeDotDoc();
+
+    // get options
+    const checkedBoxes = document.querySelectorAll('#graph_options_nodes input[type="checkbox"]:checked');
+    const checkedOptions = Array.from(checkedBoxes).map(opt => opt.value);
+
+    const dot = graphDef.makeDotDoc(checkedOptions);
 
     hpccWasm.graphvizSync().then(graphviz => {
         const div = document.getElementById("graphviz");
@@ -644,6 +667,13 @@ async function displayGraph() {
         div.innerHTML = graphviz.layout(dot, "svg", "dot");
     });
 }
+
+$(document).on('click', '#drawGraph', function(event) {
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+
+    displayGraph();
+});
 
 // === Bitmovin Player functions
 

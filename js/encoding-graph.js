@@ -1,5 +1,15 @@
 class GraphBuilder {
 
+    graphNodeCategoryGroups = {
+        "encoding": [["encoding"], false],
+        "inputs": [["input", "inputstreams", "inputfile"], true],
+        "streams": [["stream", "codec"], true],
+        "filters": [["filter"], true],
+        "muxings": [["muxing", "drm"], true],
+        "outputs": [["output"], true],
+        "manifest": [["manifest"], false]
+    };
+
     categoryColors = {
         "encoding": "#67C5CB",
         "stream": "#F7CE71",
@@ -12,6 +22,7 @@ class GraphBuilder {
         "drm": "#F89C73",
         "manifest": "#C9DB73"
     };
+
 
     constructor() {
         this._nodes = {};
@@ -60,7 +71,7 @@ class GraphBuilder {
             }
 
             // special shapes
-            if (node.category === "file") {
+            if (node.category === "inputfile" || node.category === "outputfile") {
                 attrs.shape = "note"
             }
 
@@ -76,7 +87,8 @@ class GraphBuilder {
                 if ("ignoredBy" in node.resource && node.resource.ignoredBy.length > 0) {
                     attrs.style = attrs.style + ",dashed";
                     attrs.fillcolor = attrs.fillcolor + ";0.5:#D3D3D3";
-                    attrs.gradientangle = 272
+                    attrs.gradientangle = 272;
+                    attrs.fontcolor = "grey";
                 }
 
             }
@@ -105,7 +117,15 @@ class GraphBuilder {
         })
     }
 
-    makeDotDoc() {
+    getGraphOptions() {
+        let options = {};
+        for (const [key, value] of Object.entries(this.graphNodeCategoryGroups)) {
+            options[key] = value[1];
+        }
+        return options;
+    }
+
+    makeDotDoc(showNodeTypes) {
         function groupBy(arr, prop) {
             const map = new Map(Array.from(arr, obj => [obj[prop], []]));
             arr.forEach(obj => map.get(obj[prop]).push(obj));
@@ -125,22 +145,36 @@ digraph G {
   edge[arrowsize=0.6];
 `;
 
+        // retrieve all node categories to show (from options)
+        let nodeCategoriesToShow = [];
+        showNodeTypes.forEach(t => {
+            nodeCategoriesToShow.push(this.graphNodeCategoryGroups[t][0])
+        });
+        nodeCategoriesToShow = nodeCategoriesToShow.flat();
+
+        let ignoredNodeIds = [];
+
         // add nodes
         clusterNodes.forEach(cluster => {
+            // but only if from selected node types to show
             let clusterdot = "";
             cluster.forEach(node => {
-                clusterdot += `"${node.id}" [`;
+                if (!nodeCategoriesToShow.includes(node.category)) {
+                    ignoredNodeIds.push(node.id);
+                } else {
+                    clusterdot += `"${node.id}" [`;
 
-                var attrs = [];
-                Object.entries(node.attributes).forEach(([k, v]) => {
-                    attrs.push(`${k}=<${v}>`)
-                });
-                clusterdot += attrs.join(",");
-                clusterdot += `];\n`;
+                    var attrs = [];
+                    Object.entries(node.attributes).forEach(([k, v]) => {
+                        attrs.push(`${k}=<${v}>`)
+                    });
+                    clusterdot += attrs.join(",");
+                    clusterdot += `];\n`;
+                }
             });
 
             // create subgraphs for named clusters with more than 1 node
-            if (cluster[0].cluster !== undefined && cluster.length > 1) {
+            if (cluster[0].cluster !== undefined && cluster.length > 1 && clusterdot != "") {
                 clusterdot = `subgraph "cluster_${cluster[0].cluster}" { \n` + clusterdot;
                 clusterdot += "}\n";
             }
@@ -150,19 +184,22 @@ digraph G {
 
         // add edges
         Object.values(this._edges).forEach(edge => {
-            dot += `"${edge.from_id}" -> "${edge.to_id}" `;
+            if (ignoredNodeIds.includes(edge.from_id) || ignoredNodeIds.includes(edge.to_id)) {
+                // skip
+            } else {
+                dot += `"${edge.from_id}" -> "${edge.to_id}" `;
 
-            var attrs = [];
-            Object.entries(edge.attributes).forEach(([k, v]) => {
-                attrs.push(`${k}=<${v}>`)
-            });
-            if (attrs.length) {
-                dot += "[";
-                dot += attrs.join(",");
-                dot += `]`;
+                var attrs = [];
+                Object.entries(edge.attributes).forEach(([k, v]) => {
+                    attrs.push(`${k}=<${v}>`)
+                });
+                if (attrs.length) {
+                    dot += "[";
+                    dot += attrs.join(",");
+                    dot += `]`;
+                }
+                dot += ";\n";
             }
-            dot += ";\n";
-
         });
 
         dot += "}";
