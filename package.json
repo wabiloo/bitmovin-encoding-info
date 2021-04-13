@@ -13,7 +13,8 @@
     "jquery": "^3.4.1",
     "lodash": "^4.17.15",
     "moment": "^2.24.0",
-    "numeral": "^2.0.6"
+    "numeral": "^2.0.6",
+    "tinycolor2": "~1.4.2"
   },
   "devDependencies": {},
   "scripts": {

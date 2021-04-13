@@ -14,10 +14,7 @@ let mapMuxingsToStreams = {};
 
 let drmKeys = {};
 
-let graphDef = {
-    "nodes": {},
-    "edges": {}
-}
+const graphDef = new GraphBuilder();
 
 async function processEncoding(apiHelper, encodingId) {
     await fetchEncodingInformation(apiHelper, encodingId);
@@ -39,7 +36,7 @@ async function fetchEncodingInformation(apiHelper, encodingId) {
 
         addEncodingRow(encoding, encodingStart);
 
-        // addGraphNode_fromObject(encoding, "", {fillcolor: "#67C5CB"}, "encoding")
+        graphDef.addNodeFromResource(encoding, "", "encoding")
     } catch (e) {
         throwBitmovinError(e)
     }
@@ -52,17 +49,17 @@ async function fetchStreamInformation(apiHelper, encodingId) {
     await Promise.all(streams.items.map(async(stream) => {
         console.log("Partial stream:", stream);
 
-        let shape = stream.mode && stream.mode.startsWith("PER_TITLE_TEMPLATE") ? "component" : "box";
-        addGraphNode_fromObject(stream, stream.mode || "", {fillcolor: "#F7CE71", shape: shape}, "stream");
-        // addGraphEdge(encodingId, stream.id);
+
+        graphDef.addNodeFromResource(stream, stream.mode || "","stream");
+        graphDef.addEdge(encodingId, stream.id);
 
         const codecType = await apiHelper.getCodecConfigurationType(stream.codecConfigId);
         console.log("Codec Type: ", codecType);
         const codecConfig = await apiHelper.getCodecConfigurationDetails(stream.codecConfigId, codecType.type);
         console.log("Codec: ", codecConfig);
 
-        addGraphNode_fromObject(codecConfig, apiHelper.makeStreamLabel(codecConfig, stream), {fillcolor: "#7FAC58"}, "codec");
-        addGraphEdge(stream.id, codecConfig.id, {color: "#7FAC58"});
+        graphDef.addNodeFromResource(codecConfig, apiHelper.makeStreamLabel(codecConfig, stream), "codec");
+        graphDef.addEdge(stream.id, codecConfig.id);
 
         stream.inputStreams.forEach(streamInput => {
             if (streamInput.inputPath && streamInput.inputPath.length > 0) {
@@ -70,10 +67,10 @@ async function fetchStreamInformation(apiHelper, encodingId) {
                 if (shortenedPath.includes("/")) {
                     shortenedPath = ".../" + streamInput.inputPath.substring(streamInput.inputPath.lastIndexOf("/") + 1);
                 }
-                addGraphNode(streamInput.inputId, streamInput.inputId, "", "Input", {fillcolor: "#B3B3B3"}, "input");
-                addGraphNode(shortenedPath, shortenedPath, "", "File", {fillcolor: "white", shape: "note"}, "input");
-                addGraphEdge(streamInput.inputId, shortenedPath);
-                addGraphEdge(shortenedPath, stream.id)
+                graphDef.addNode(streamInput.inputId, "Input", "", "input");
+                graphDef.addNode(shortenedPath,"File", "","file");
+                graphDef.addEdge(streamInput.inputId, shortenedPath);
+                graphDef.addEdge(shortenedPath, stream.id)
             }
         });
 
@@ -160,8 +157,8 @@ async function makeInputStreamChainTable(apiHelper, encodingId, parent, parentId
         const inputStream = await apiHelper.getInputStreamDetails(encodingId, inputStreamId);
         console.log("Input Stream details:", inputStream);
 
-        addGraphNode_fromObject(inputStream, "", {fillcolor: "#9EBAF3"}, "input");
-        addGraphEdge(inputStreamId, parentId);
+        graphDef.addNodeFromResource(inputStream, "", "inputstream");
+        graphDef.addEdge(inputStreamId, parentId);
 
         if (_.has(inputStream, "inputPath")) {
             inputPath = inputStream.inputPath;
@@ -169,10 +166,10 @@ async function makeInputStreamChainTable(apiHelper, encodingId, parent, parentId
             if (shortenedPath.includes("/")) {
                 shortenedPath = ".../" + inputPath.substring(inputPath.lastIndexOf("/") + 1);
             }
-            addGraphNode(inputStream.inputId, inputStream.inputId, "", "Input", {fillcolor: "#B3B3B3"}, "input");
-            addGraphNode(shortenedPath, shortenedPath, "", "File", {fillcolor: "white", shape: "note"}, "input");
-            addGraphEdge(inputStream.inputId, shortenedPath);
-            addGraphEdge(shortenedPath, inputStreamId)
+            graphDef.addNode(inputStream.inputId, "Input", "", "input");
+            graphDef.addNode(shortenedPath, "File", "", "input");
+            graphDef.addEdge(inputStream.inputId, shortenedPath);
+            graphDef.addEdge(shortenedPath, inputStreamId)
         }
 
         parentId = parent.id || parent.inputStreamId;
@@ -211,8 +208,8 @@ async function fetchFiltersInformation(apiHelper, encodingId, streamId) {
         const filterDetails = await apiHelper.getFilterDetails(filter.id, filterType);
         console.log("Filter details:", filterDetails);
 
-        addGraphNode_fromObject(filterDetails, "", {fillcolor: "#8BE0A4"}, "muxing", streamId);
-        addGraphEdge(streamId, filterDetails.id, {color: "#8BE0A4"});
+        graphDef.addNodeFromResource(filterDetails, "", "filter", streamId);
+        graphDef.addEdge(streamId, filterDetails.id);
 
         // async reduce returns a Promise on each iteration, so await is required
         // https://advancedweb.hu/how-to-use-async-functions-with-array-reduce-in-javascript/#asynchronous-reduce
@@ -231,15 +228,14 @@ async function fetchMuxingOutputInformation(apiHelper, encodingId) {
     muxings.items.forEach(async function(muxing)  {
         console.log("Partial muxing:", muxing);
 
-        addGraphNode_fromObject(muxing, "", {fillcolor: '#DCB1F2'}, "muxing", muxing.id);
-        // addGraphEdge(encodingId, muxing.id);
+        graphDef.addNodeFromResource(muxing, "","muxing", muxing.id);
 
         let streams = apiHelper.getStreamIdsFromMuxing(muxing);
         // record for later use
         mapMuxingsToStreams[muxing.id] = streams;
 
         streams.forEach(streamId => {
-            addGraphEdge(streamId, muxing.id);
+            graphDef.addEdge(streamId, muxing.id);
         });
 
         // TODO - determine whether the partial vs full representation are different (and therefore whether this additional call is required)
@@ -249,8 +245,8 @@ async function fetchMuxingOutputInformation(apiHelper, encodingId) {
             if (fullmuxing.outputs) {
                 fullmuxing.outputs.forEach(muxingOutput => {
                     allMuxings[muxing.id] = processMuxingEncodingOutput(apiHelper, muxingOutput, fullmuxing, streams);
-                    addGraphNode(muxingOutput.outputId, muxingOutput.outputId, "", "Output", {fillcolor: "#B3B3B3"}, "output");
-                    addGraphEdge(fullmuxing.id, muxingOutput.outputId, {color: "#B3B3B3"});
+                    graphDef.addNode(muxingOutput.outputId, "Output", "", "output");
+                    graphDef.addEdge(fullmuxing.id, muxingOutput.outputId);
                 })
             }
         });
@@ -262,14 +258,15 @@ async function fetchMuxingOutputInformation(apiHelper, encodingId) {
             apiHelper.getMuxingDrmDetails(encodingId, muxing, drm).then(fulldrm => {
                 console.log("DRM info:", fulldrm);
 
-                addGraphNode_fromObject(fulldrm, "", {fillcolor: "#F89C73"}, "muxing", muxing.id);
-                addGraphEdge(muxing.id, fulldrm.id);
+                graphDef.addNodeFromResource(fulldrm,"", "drm", muxing.id);
+                graphDef.addEdge(muxing.id, fulldrm.id);
 
                 if (fulldrm.outputs) {
                     fulldrm.outputs.forEach(drmOutput => {
                         allMuxings[drm.id] = processMuxingDrmEncodingOutput(apiHelper, drmOutput, muxing, fulldrm, streams);
-                        addGraphNode(drmOutput.outputId, drmOutput.outputId, "", "Output", {fillcolor: "#B3B3B3"}, "output");
-                        addGraphEdge(fulldrm.id, drmOutput.outputId, {color: "#B3B3B3"});
+
+                        graphDef.addNode(drmOutput.outputId,"Output","", "output");
+                        graphDef.addEdge(fulldrm.id, drmOutput.outputId);
                     })
                 }
 
@@ -351,14 +348,14 @@ async function fetchManifestOutputInformation(apiHelper, encodingId) {
     manifests.forEach(manifest => {
         console.log(manifest);
 
-        addGraphNode_fromObject(manifest, "", {fillcolor: "#C9DB73"}, "encoding");
-        // addGraphEdge(manifest.id, encodingId);
+        graphDef.addNodeFromResource(manifest, "", "manifest");
+        graphDef.addEdge(manifest.id, encodingId);
 
         manifest.outputs.forEach(manifestOutput => {
             processManifestEncodingOutput(apiHelper, manifestOutput, manifest);
 
-            addGraphNode(manifestOutput.outputId, manifestOutput.outputId, "", "Output", {fillcolor: "#B3B3B3"}, "output");
-            addGraphEdge(manifest.id, manifestOutput.outputId, {color: "#B3B3B3"});
+            graphDef.addNode(manifestOutput.outputId, "Output", "", "output");
+            graphDef.addEdge(manifest.id, manifestOutput.outputId);
         });
     });
 
@@ -637,121 +634,9 @@ function dataTable_renderHiddenColumns(api, rowIdx, columns ) {
 
 // === Graphviz functions
 
-function addGraphNode(id, name, label="", type, attributes, rank, cluster) {
-    const defaults = {
-        label: `<B>${type}</B><br/>${label}<br/>${name}`,
-        shape: 'box',
-        fontsize: 10,
-        style: 'filled'
-    };
-
-    graphDef.nodes[id] = {
-        id: id,
-        name: name,
-        type: type,
-        rank: rank,
-        cluster: cluster,
-        attributes: Object.assign({}, defaults, attributes)
-    }
-}
-function addGraphNode_fromObject(resource, label="", attributes={}, rank, cluster) {
-    if ("ignoredBy" in resource && resource.ignoredBy.length > 0) {
-        attributes['style'] = "filled,dashed"
-    }
-
-    addGraphNode(resource.id, resource.id, label, resource.constructor.name, attributes, rank, cluster)
-}
-function addGraphEdge(from_id, to_id, attributes={}) {
-    let key = `${from_id}_to_${to_id}`;
-    graphDef.edges[key] = {
-        from_id: from_id,
-        to_id: to_id,
-        attributes: attributes
-    }
-}
-
-function makeDotDoc() {
-    function groupBy(arr, prop) {
-        const map = new Map(Array.from(arr, obj => [obj[prop], []]));
-        arr.forEach(obj => map.get(obj[prop]).push(obj));
-        return Array.from(map.values());
-    }
-    groupedNodes = groupBy(Object.values(graphDef.nodes), "rank");
-    clusterNodes = groupBy(Object.values(graphDef.nodes), "cluster");
-
-    var dot = `
-    digraph G {
-      rankdir="LR";
-      node[fontsize=8, fontname=Arial];
-      edge[arrowsize=0.6];
-    `;
-    // Object.values(graphDef.nodes).forEach(node => {
-    //     dot += `"${node.id}" [`;
-    //     var attrs = [];
-    //     Object.entries(node.attributes).forEach(([k, v]) => {
-    //         attrs.push(`${k}=<${v}>`)
-    //     });
-    //     dot += attrs.join(",");
-    //     dot += `];\n`;
-    // });
-
-    // groupedNodes.forEach(group => {
-    //     dot += "{ rank=same; \n";
-    //     group.forEach(node => {
-    //         dot += `"${node.id}" [`;
-    //         var attrs = [];
-    //         Object.entries(node.attributes).forEach(([k, v]) => {
-    //             attrs.push(`${k}=<${v}>`)
-    //         });
-    //         dot += attrs.join(",");
-    //         dot += `];\n`;
-    //     });
-    //
-    //     dot += "}\n";
-    // });
-
-    clusterNodes.forEach(group => {
-        if (group[0].cluster !== undefined) {
-            dot += `subgraph "cluster_${group[0].cluster}" { \n`;
-        }
-        group.forEach(node => {
-            dot += `"${node.id}" [`;
-            var attrs = [];
-            Object.entries(node.attributes).forEach(([k, v]) => {
-                attrs.push(`${k}=<${v}>`)
-            });
-            dot += attrs.join(",");
-            dot += `];\n`;
-        });
-        if (group[0].cluster !== undefined) {
-            dot += "}\n";
-        }
-    });
-
-    Object.values(graphDef.edges).forEach(edge => {
-        dot += `"${edge.from_id}" -> "${edge.to_id}" `;
-
-        var attrs = [];
-        Object.entries(edge.attributes).forEach(([k, v]) => {
-            attrs.push(`${k}=<${v}>`)
-        });
-        if (attrs.length) {
-            dot += "[";
-            dot += attrs.join(",");
-            dot += `]`;
-        }
-        dot += ";\n";
-
-    });
-
-    dot += "}";
-
-    return dot
-}
-
 async function displayGraph() {
     var hpccWasm = window["@hpcc-js/wasm"];
-    const dot = makeDotDoc();
+    const dot = graphDef.makeDotDoc();
 
     hpccWasm.graphvizSync().then(graphviz => {
         const div = document.getElementById("graphviz");
