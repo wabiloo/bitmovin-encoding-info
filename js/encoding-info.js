@@ -51,10 +51,10 @@ async function fetchStreamInformation(apiHelper, encodingId) {
 
     var inputsFound = [];
 
-    await Promise.all(streams.map(async(stream) => {
+    await Promise.all(streams.map(async (stream) => {
         console.log("Partial stream:", stream);
 
-        graphDef.addNodeFromResource(stream, stream.mode || "","stream");
+        graphDef.addNodeFromResource(stream, stream.mode || "", "stream");
         graphDef.addEdge(encodingId, stream.id);
 
         const codecType = await apiHelper.getCodecConfigurationType(stream.codecConfigId);
@@ -65,7 +65,7 @@ async function fetchStreamInformation(apiHelper, encodingId) {
         graphDef.addNodeFromResource(codecConfig, apiHelper.makeStreamLabel(codecConfig, stream), "codec");
         graphDef.addEdge(stream.id, codecConfig.id);
 
-        stream.inputStreams.forEach(async(streamInput) => {
+        stream.inputStreams.forEach(async (streamInput) => {
             if (streamInput.inputPath && streamInput.inputPath.length > 0) {
                 let shortenedPath = streamInput.inputPath;
                 if (shortenedPath.includes("/")) {
@@ -75,8 +75,8 @@ async function fetchStreamInformation(apiHelper, encodingId) {
                 let inputDetails = await apiHelper.getInputDetails(streamInput.inputId);
                 let label = inputDetails.bucketName ? inputDetails.bucketName : "";
 
-                graphDef.addNodeFromResource(inputDetails, label,"input");
-                graphDef.addNode(shortenedPath,"File", "","inputfile");
+                graphDef.addNodeFromResource(inputDetails, label, "input");
+                graphDef.addNode(shortenedPath, "File", "", "inputfile");
                 graphDef.addEdge(streamInput.inputId, shortenedPath);
                 graphDef.addEdge(shortenedPath, stream.id)
             }
@@ -90,7 +90,7 @@ async function fetchStreamInformation(apiHelper, encodingId) {
         console.log("Input", inputInfo);
 
         // const inputStreams = await this.fetchInputStreamInformation(apiHelper, encodingId, stream);
-        const inputStreamsTable = await this.makeInputStreamChainTable(apiHelper, encodingId, stream.inputStreams[0], stream.id,"(stream)");
+        const inputStreamsTable = await this.makeInputStreamChainTable(apiHelper, encodingId, stream.inputStreams[0], stream.id, "(stream)");
 
         let row = {
             "streamid": stream.id,
@@ -154,7 +154,7 @@ async function makeInputStreamChainTable(apiHelper, encodingId, parent, parentId
     let cell2 = $("<td>").appendTo(mainRow);
 
     let subInputStreamIds = collectInputStreamIds(parent, []);
-    await Promise.all(subInputStreamIds.map(async(inputStreamId) => {
+    await Promise.all(subInputStreamIds.map(async (inputStreamId) => {
         const inputStream = await apiHelper.getInputStreamDetails(encodingId, inputStreamId);
         console.log("Input Stream details:", inputStream);
 
@@ -171,7 +171,7 @@ async function makeInputStreamChainTable(apiHelper, encodingId, parent, parentId
             let inputDetails = await apiHelper.getInputDetails(inputStream.inputId);
             let label = inputDetails.bucketName ? inputDetails.bucketName : "";
 
-            graphDef.addNodeFromResource(inputDetails, label,"input");
+            graphDef.addNodeFromResource(inputDetails, label, "input");
             graphDef.addNode(shortenedPath, "File", "", "inputfile");
             graphDef.addEdge(inputStream.inputId, shortenedPath);
             graphDef.addEdge(shortenedPath, inputStreamId)
@@ -206,7 +206,7 @@ function collectInputStreamIds(obj, res) {
 async function fetchFiltersInformation(apiHelper, encodingId, streamId) {
     const filters = await apiHelper.getStreamFilters(encodingId, streamId);
 
-    const resolvedFilters = await filters.filters.reduce(async function(res, filter) {
+    const resolvedFilters = await filters.filters.reduce(async function (res, filter) {
         const filterType = await apiHelper.getFilterType(filter.id);
         console.log("Filter type:", filterType);
 
@@ -218,7 +218,7 @@ async function fetchFiltersInformation(apiHelper, encodingId, streamId) {
 
         // async reduce returns a Promise on each iteration, so await is required
         // https://advancedweb.hu/how-to-use-async-functions-with-array-reduce-in-javascript/#asynchronous-reduce
-        res = await(res);
+        res = await (res);
         res[filter.position] = filterDetails;
         return res
     }, {});
@@ -230,10 +230,10 @@ async function fetchMuxingOutputInformation(apiHelper, encodingId) {
     let allMuxings = {};
 
     const muxings = await apiHelper.getMuxingsForEncodingId(encodingId);
-    muxings.items.forEach(async function(muxing)  {
+    muxings.items.forEach(async function (muxing) {
         console.log("Partial muxing:", muxing);
 
-        graphDef.addNodeFromResource(muxing, "","muxing", muxing.id);
+        graphDef.addNodeFromResource(muxing, "", "muxing", muxing.id);
 
         let streams = apiHelper.getStreamIdsFromMuxing(muxing);
         // record for later use
@@ -244,11 +244,11 @@ async function fetchMuxingOutputInformation(apiHelper, encodingId) {
         });
 
         // TODO - determine whether the partial vs full representation are different (and therefore whether this additional call is required)
-        await apiHelper.getMuxingDetails(encodingId, muxing).then(async(fullmuxing) => {
+        await apiHelper.getMuxingDetails(encodingId, muxing).then(async (fullmuxing) => {
             console.log("Full muxing:", fullmuxing);
 
             if (fullmuxing.outputs) {
-                await Promise.all(fullmuxing.outputs.map(async(muxingOutput) => {
+                await Promise.all(fullmuxing.outputs.map(async (muxingOutput) => {
                     allMuxings[muxing.id] = processMuxingEncodingOutput(apiHelper, muxingOutput, fullmuxing, streams);
 
                     let outputDetails = await apiHelper.getOutputDetails(muxingOutput.outputId);
@@ -269,21 +269,21 @@ async function fetchMuxingOutputInformation(apiHelper, encodingId) {
         let muxingDrms = await apiHelper.getMuxingDrms(encodingId, muxing);
         console.log(`DRMs for muxing ${muxing.id}:`, muxingDrms.items);
 
-        muxingDrms.items.forEach(async function(drm) {
-            apiHelper.getMuxingDrmDetails(encodingId, muxing, drm).then(async(fulldrm) => {
+        muxingDrms.items.forEach(async function (drm) {
+            apiHelper.getMuxingDrmDetails(encodingId, muxing, drm).then(async (fulldrm) => {
                 console.log("DRM info:", fulldrm);
 
-                graphDef.addNodeFromResource(fulldrm,"", "drm", muxing.id);
+                graphDef.addNodeFromResource(fulldrm, "", "drm", muxing.id);
                 graphDef.addEdge(muxing.id, fulldrm.id);
 
                 if (fulldrm.outputs) {
-                    await Promise.all(fulldrm.outputs.map(async(drmOutput) => {
+                    await Promise.all(fulldrm.outputs.map(async (drmOutput) => {
                         allMuxings[drm.id] = processMuxingDrmEncodingOutput(apiHelper, drmOutput, muxing, fulldrm, streams);
 
                         let outputDetails = await apiHelper.getOutputDetails(drmOutput.outputId);
                         let label = outputDetails.bucketName ? outputDetails.bucketName : "";
 
-                        graphDef.addNodeFromResource(outputDetails,label,"output");
+                        graphDef.addNodeFromResource(outputDetails, label, "output");
                         graphDef.addEdge(fulldrm.id, drmOutput.outputId);
                     }));
                 }
@@ -299,7 +299,7 @@ function addDrmKey(type, key, kid) {
     if (!(type in drmKeys)) {
         drmKeys[type] = []
     }
-    drmKeys[type] = _.unionBy(drmKeys[type], [{key:key, kid:kid}], _.isEqual)
+    drmKeys[type] = _.unionBy(drmKeys[type], [{key: key, kid: kid}], _.isEqual)
 }
 
 async function processMuxingEncodingOutput(apiHelper, muxingOutput, muxing, streams) {
@@ -363,19 +363,19 @@ async function fetchManifestOutputInformation(apiHelper, encodingId) {
 
     const manifests = [...dashManifests.items, ...hlsManifests.items, ...smoothManifests.items];
 
-    manifests.forEach(async(manifest) => {
+    manifests.forEach(async (manifest) => {
         console.log(manifest);
 
         graphDef.addNodeFromResource(manifest, "", "manifest");
         graphDef.addEdge(manifest.id, encodingId);
 
-        await Promise.all(manifest.outputs.map(async(manifestOutput) => {
+        await Promise.all(manifest.outputs.map(async (manifestOutput) => {
             processManifestEncodingOutput(apiHelper, manifestOutput, manifest);
 
             let outputDetails = await apiHelper.getOutputDetails(manifestOutput.outputId);
             let label = outputDetails.bucketName ? outputDetails.bucketName : "";
 
-            graphDef.addNodeFromResource(outputDetails,label,"output");
+            graphDef.addNodeFromResource(outputDetails, label, "output");
             graphDef.addEdge(manifest.id, manifestOutput.outputId);
         }));
     });
@@ -453,7 +453,7 @@ function addMuxingRow(muxing_type, muxing_id, bitrate, drm_type, drm_id, urls, s
         urlTableBody.append(addUrlRow('storage', urls.storageUrl, [button_externalLink("console", urls.consoleUrl)]));
 
         if (urls.streamingUrl !== "") {
-            urlTableBody.append(addUrlRow('streaming', urls.streamingUrl, [button_showPlayer(muxing_type, urls.streamingUrl)])) ;
+            urlTableBody.append(addUrlRow('streaming', urls.streamingUrl, [button_showPlayer(muxing_type, urls.streamingUrl)]));
         }
     } else {
         urlTableBody.append(addUrlRow('storage', urls.storageUrl, null));
@@ -468,7 +468,7 @@ function addMuxingRow(muxing_type, muxing_id, bitrate, drm_type, drm_id, urls, s
         "drm": drm_type ? drm_type : "-",
         "bitrate": bitrate,
         "output": urls.outputType || "(unhandled output type)",
-        "host": urls.host || "(unhandled output type)" ,
+        "host": urls.host || "(unhandled output type)",
         "urls": urlTable.prop('outerHTML'),
         "streams": addRefLinks(streams),
         "json_muxing": prettyPayload(json_muxing),
@@ -632,24 +632,23 @@ function dataTable_bitrate(data, type, row, meta) {
 function dataTable_duration(data, type, row, meta) {
     if (data) {
         return formatDuration(data)
-    }
-    else {
+    } else {
         return undefined;
     }
 }
 
-function dataTable_renderHiddenColumns(api, rowIdx, columns ) {
-    var data = $.map( columns, function ( col, i ) {
+function dataTable_renderHiddenColumns(api, rowIdx, columns) {
+    var data = $.map(columns, function (col, i) {
         return col.hidden ?
-            '<tr data-dt-row="'+col.rowIndex+'" data-dt-column="'+col.columnIndex+'">'+
-            '<th>'+col.title+'</th> '+
-            '<td class="copy-me">'+col.data+'</td>'+
+            '<tr data-dt-row="' + col.rowIndex + '" data-dt-column="' + col.columnIndex + '">' +
+            '<th>' + col.title + '</th> ' +
+            '<td class="copy-me">' + col.data + '</td>' +
             '</tr>' :
             '';
-    } ).join('');
+    }).join('');
 
     return data ?
-        $('<table class="hidden-columns"/>').append( data ) :
+        $('<table class="hidden-columns"/>').append(data) :
         false;
 }
 
@@ -684,7 +683,7 @@ async function displayGraph() {
         .renderDot(dot);
 }
 
-$(document).on('click', '#drawGraph', function(event) {
+$(document).on('click', '#drawGraph', function (event) {
     event.stopPropagation();
     event.stopImmediatePropagation();
 
@@ -745,12 +744,12 @@ function loadPlayer(streamType, stream) {
     $('#player-modal').modal('show');
 
     player.load(source).then(
-        function() {
+        function () {
             console.log('Successfully created Bitmovin Player instance');
             hideLoader();
             player.play();
         },
-        function(reason) {
+        function (reason) {
             console.log('Error while creating Bitmovin Player instance');
         }
     );
@@ -763,7 +762,7 @@ function loadViewer(url) {
     hideLoader();
 }
 
-$(document).on('click', '.btn-start-play', function(event) {
+$(document).on('click', '.btn-start-play', function (event) {
     event.stopPropagation();
     event.stopImmediatePropagation();
 
@@ -775,7 +774,7 @@ $(document).on('click', '.btn-start-play', function(event) {
     loadPlayer(streamType, stream)
 });
 
-$(document).on('click', '.btn-view-file', function(event) {
+$(document).on('click', '.btn-view-file', function (event) {
     event.stopPropagation();
     event.stopImmediatePropagation();
 
@@ -795,7 +794,7 @@ $(document).on('hide.bs.modal', '#player-modal', function (e) {
 
 // === Main
 
-$(document).on('click', '.copy-me', function(event) {
+$(document).on('click', '.copy-me', function (event) {
     event.stopPropagation();
     event.stopImmediatePropagation();
 
@@ -820,7 +819,7 @@ $(document).on('click', '.copy-me', function(event) {
                 //span.textContent = original;
                 span.classList.remove('copied');
             }, 1200);
-        } catch(e) {
+        } catch (e) {
             const errorMsg = document.querySelector('.error-msg');
             errorMsg.classList.add('show');
 
@@ -831,18 +830,18 @@ $(document).on('click', '.copy-me', function(event) {
     }
 });
 
-$(document).on('click', '.follow-ref', function(event) {
+$(document).on('click', '.follow-ref', function (event) {
     event.stopPropagation();
     event.stopImmediatePropagation();
 
     let guids = $(this).first().data('ref');
-    let classes = guids.split(',').map(g => '.'+g).join(',');
+    let classes = guids.split(',').map(g => '.' + g).join(',');
 
     let row = $(classes);
 
     $('html, body').animate({
         scrollTop: (row.first().offset().top)
-    },500);
+    }, 500);
 
     setTimeout(() => {
         row.addClass('highlight');
@@ -853,20 +852,20 @@ $(document).on('click', '.follow-ref', function(event) {
 });
 
 
-$(document).on('click', '.follow-ref-muxing', function(event) {
+$(document).on('click', '.follow-ref-muxing', function (event) {
     event.stopPropagation();
     event.stopImmediatePropagation();
 
     let streamId = $(this).first().data('streamid');
     let muxingIds = window['apiHelper'].getMuxingIdsForStreamId(streamId);
 
-    let classes = muxingIds.map(g => '.'+g).join(',');
+    let classes = muxingIds.map(g => '.' + g).join(',');
 
     let row = $(classes);
 
     $('html, body').animate({
         scrollTop: (row.first().offset().top - 70)
-    },500);
+    }, 500);
 
     setTimeout(() => {
         row.addClass('highlight');
@@ -878,9 +877,9 @@ $(document).on('click', '.follow-ref-muxing', function(event) {
 
 $(document).on('submit', '#inputEncodings', encodingsChanged);
 
-$(document).on('click', '#go-compare', function(event) {
+$(document).on('click', '#go-compare', function (event) {
     let encodingId = $('#inputEncodingId').val();
-    location.href=`compare.html?apiKey=${apiKey}&tenantOrgId=${tenantOrgId}&encodingIds=${encodingId}`
+    location.href = `compare.html?apiKey=${apiKey}&tenantOrgId=${tenantOrgId}&encodingIds=${encodingId}`
 });
 
 
@@ -1006,16 +1005,16 @@ $(document).ready(function () {
                 target: '.more'  // jQuery selector as per doc - https://datatables.net/forums/discussion/57793/issue-with-using-responsive-and-a-last-column#latest
             }
         },
-        rowCallback: function( row, data, index ) {
+        rowCallback: function (row, data, index) {
             $(row).addClass(data.manifestid);
         }
     });
 
-    bmTables.muxings = $('#muxings').DataTable( {
+    bmTables.muxings = $('#muxings').DataTable({
         dom: 'ift',
         ordering: true,
         orderFixed: [[0, "asc"]],
-        order: [[ 1, "asc" ],[ 2, "desc" ]],
+        order: [[1, "asc"], [2, "desc"]],
         paging: false,
         columns: [
             {
@@ -1097,7 +1096,7 @@ $(document).ready(function () {
                 target: '.more'  // jQuery selector as per doc - https://datatables.net/forums/discussion/57793/issue-with-using-responsive-and-a-last-column#latest
             }
         },
-        rowCallback: function( row, data, index ) {
+        rowCallback: function (row, data, index) {
             $(row).addClass(data.muxingid);
 
             if (!data.bitrate) {
@@ -1207,7 +1206,7 @@ $(document).ready(function () {
 
         ],
         rowGroup: {
-            dataSrc: ['media','codec']
+            dataSrc: ['media', 'codec']
         },
         responsive: {
             details: {
@@ -1225,7 +1224,7 @@ $(document).ready(function () {
         dom: 'ift',
         ordering: true,
         orderFixed: [[0, "asc"]],
-        order: [[ 1, "asc" ],[ 2, "desc" ]],
+        order: [[1, "asc"], [2, "desc"]],
         paging: false,
         columns: [
             {
@@ -1306,7 +1305,7 @@ $(document).ready(function () {
 
 
 function throwBitmovinError(msg) {
-    throwError(msg.shortMessage, msg.message, msg.errorCode || msg.httpStatusCode )
+    throwError(msg.shortMessage, msg.message, msg.errorCode || msg.httpStatusCode)
 }
 
 function throwError(msg, detail, errorcode) {
