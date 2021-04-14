@@ -82,6 +82,13 @@ class BitmovinHelper {
         return this._api.encoding.outputs.get(outputId);
     }
 
+    getInputDetails(inputId) {
+        // let objectName = BitmovinApi.Output._discriminatorMapping[outputType];
+        // let endpoint = this.getOutputEndpointFromClassName(objectName);
+
+        return this._api.encoding.inputs.get(inputId);
+    }
+
     getStreamIdsFromMuxing(muxing) {
         return muxing.streams.map(muxingstream => muxingstream.streamId )
     }

@@ -44,12 +44,15 @@ async function fetchEncodingInformation(apiHelper, encodingId) {
 }
 
 async function fetchStreamInformation(apiHelper, encodingId) {
-    const streams = await apiHelper.getStreamsForEncodingId(encodingId);
+    let streamResponse = await apiHelper.getStreamsForEncodingId(encodingId);
+
+    // order by mode
+    let streams = _.reverse(_.sortBy(streamResponse.items, ['mode']));
+
     var inputsFound = [];
 
-    await Promise.all(streams.items.map(async(stream) => {
+    await Promise.all(streams.map(async(stream) => {
         console.log("Partial stream:", stream);
-
 
         graphDef.addNodeFromResource(stream, stream.mode || "","stream");
         graphDef.addEdge(encodingId, stream.id);
@@ -62,13 +65,17 @@ async function fetchStreamInformation(apiHelper, encodingId) {
         graphDef.addNodeFromResource(codecConfig, apiHelper.makeStreamLabel(codecConfig, stream), "codec");
         graphDef.addEdge(stream.id, codecConfig.id);
 
-        stream.inputStreams.forEach(streamInput => {
+        stream.inputStreams.forEach(async(streamInput) => {
             if (streamInput.inputPath && streamInput.inputPath.length > 0) {
                 let shortenedPath = streamInput.inputPath;
                 if (shortenedPath.includes("/")) {
                     shortenedPath = ".../" + streamInput.inputPath.substring(streamInput.inputPath.lastIndexOf("/") + 1);
                 }
-                graphDef.addNode(streamInput.inputId, "Input", "", "input");
+
+                let inputDetails = await apiHelper.getInputDetails(streamInput.inputId);
+                let label = inputDetails.bucketName ? inputDetails.bucketName : "";
+
+                graphDef.addNodeFromResource(inputDetails, label,"input");
                 graphDef.addNode(shortenedPath,"File", "","inputfile");
                 graphDef.addEdge(streamInput.inputId, shortenedPath);
                 graphDef.addEdge(shortenedPath, stream.id)
@@ -129,13 +136,6 @@ async function fetchStreamInformation(apiHelper, encodingId) {
 
 }
 
-async function fetchInputStreamInformation(apiHelper, encodingId, inputStreamId) {
-    const inputStream = await apiHelper.getInputStreamDetails(encodingId, inputStreamId);
-    console.log("Input Stream details:", inputStream);
-
-    return inputStream
-}
-
 async function makeInputStreamChainTable(apiHelper, encodingId, parent, parentId, initialTitle, inputPath = null) {
 
     initialTitle = initialTitle || "(top)";
@@ -167,7 +167,11 @@ async function makeInputStreamChainTable(apiHelper, encodingId, parent, parentId
             if (shortenedPath.includes("/")) {
                 shortenedPath = ".../" + inputPath.substring(inputPath.lastIndexOf("/") + 1);
             }
-            graphDef.addNode(inputStream.inputId, "Input", "", "input");
+
+            let inputDetails = await apiHelper.getInputDetails(inputStream.inputId);
+            let label = inputDetails.bucketName ? inputDetails.bucketName : "";
+
+            graphDef.addNodeFromResource(inputDetails, label,"input");
             graphDef.addNode(shortenedPath, "File", "", "inputfile");
             graphDef.addEdge(inputStream.inputId, shortenedPath);
             graphDef.addEdge(shortenedPath, inputStreamId)
@@ -270,7 +274,7 @@ async function fetchMuxingOutputInformation(apiHelper, encodingId) {
                     await Promise.all(fulldrm.outputs.map(async(drmOutput) => {
                         allMuxings[drm.id] = processMuxingDrmEncodingOutput(apiHelper, drmOutput, muxing, fulldrm, streams);
 
-                        let outputDetails = await apiHelper.getOutputDetails(muxingOutput.outputId);
+                        let outputDetails = await apiHelper.getOutputDetails(drmOutput.outputId);
                         let label = outputDetails.bucketName ? outputDetails.bucketName : "";
 
                         graphDef.addNodeFromResource(outputDetails,label,"output");
