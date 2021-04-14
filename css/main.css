@@ -130,3 +130,21 @@ span.help {
     width: 100%;
     margin-bottom: 10px;
 }
+
+#info-floaters {
+    position: relative;
+}
+.floater {
+    font-size: 80%;
+    border: 1px solid lightgray;
+    padding: 2px;
+    position: absolute;
+    background-color: rgba(255, 255, 255, 0.9);
+}
+.floater-title {
+    padding: 2px;
+    cursor: move;
+}
+.floater-title a {
+    float: right
+}

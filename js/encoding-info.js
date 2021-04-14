@@ -680,7 +680,53 @@ async function displayGraph() {
 
     d3.select("#graphviz")
         .graphviz()
-        .renderDot(dot);
+        .dot(dot)
+        .render(function() {
+            d3.select("#graphviz")    //  Or change to #id of your hosting SVG node
+                .selectAll(".node")
+                .on("click", handleClickGraphNode)
+            ;
+        });
+}
+
+function handleClickGraphNode(evt) {
+    console.log(evt);
+    // get parent group node
+    const g = evt.target.parentNode;
+    let gClasses = g.className.baseVal.split(" ");
+    gClasses = _.filter(gClasses, c => c.match('^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'));
+
+    // get color and position
+    const polygon = d3.select(g).select('polygon');
+    const color = polygon.attr('fill');
+    const x = evt.offsetX;
+    const y = evt.offsetY;
+
+    for (c of gClasses) {
+        // collect original
+        const resource = graphDef._nodes[c].resource;
+        console.log(resource);
+
+        // add an info panel with that node's JSON
+        let infoNode = `
+            <div class="floater" id="floater-${resource.id}" 
+                 style="border: 1px solid ${color}; left: ${x}px; top: ${y}px;">
+                <div class="floater-title" style="background-color: ${color}">
+                    ${resource.id}
+                    <a data-toggle="collapse" href="#floater-collapse-${resource.id}">
+                        collapse
+                    </a>
+                </div>
+                <div class="floater-body collapse show" id="floater-collapse-${resource.id}">${prettyPayload(resource)}</div>
+            </div>`;
+
+        document.getElementById("info-floaters").innerHTML += infoNode;
+
+        dragmove(
+            document.querySelector(`#floater-${resource.id}`),
+            document.querySelector(`#floater-${resource.id} .floater-title`)
+        );
+    }
 }
 
 $(document).on('click', '#drawGraph', function (event) {
