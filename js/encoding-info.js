@@ -673,19 +673,15 @@ function addGraphOptions() {
 }
 
 async function displayGraph() {
-    var hpccWasm = window["@hpcc-js/wasm"];
-
     // get options
     const checkedBoxes = document.querySelectorAll('#graph_options_nodes input[type="checkbox"]:checked');
     const checkedOptions = Array.from(checkedBoxes).map(opt => opt.value);
 
     const dot = graphDef.makeDotDoc(checkedOptions);
 
-    hpccWasm.graphvizSync().then(graphviz => {
-        const div = document.getElementById("graphviz");
-        // Synchronous call to layout
-        div.innerHTML = graphviz.layout(dot, "svg", "dot");
-    });
+    d3.select("#graphviz")
+        .graphviz()
+        .renderDot(dot);
 }
 
 $(document).on('click', '#drawGraph', function(event) {

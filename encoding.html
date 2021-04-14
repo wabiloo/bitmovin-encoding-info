@@ -21,7 +21,9 @@
     <script src="node_modules/moment/moment.js" type="application/javascript"></script>
     <script src="node_modules/tinycolor2/tinycolor.js" type="application/javascript"></script>
 
-    <script src="https://cdn.jsdelivr.net/npm/@hpcc-js/wasm/dist/index.min.js"></script>
+    <script src="node_modules/d3/dist/d3.min.js" type="application/javascript"></script>
+    <script src="node_modules/d3-graphviz/build/d3-graphviz.min.js" type="application/javascript"></script>
+    <script src="node_modules/@hpcc-js/wasm/dist/index.js"></script>
 
     <script src="js/json-pretty-print.js" type="application/javascript"></script>
     <script src="js/bitmovin-helper-class.js" type="application/javascript"></script>
@@ -110,9 +112,9 @@
                         Draw graph
                     </button>
                 </div>
+                <div id="graphviz"></div>
 
             </div>
-            <div id="graphviz" style="width: 100%"></div>
         </div>
 
         <a id="manifests-anchor" class="anchor"></a>

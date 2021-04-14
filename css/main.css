@@ -124,3 +124,9 @@ span.help {
     color: darkgreen;
     padding-right: 20px;
 }
+
+#graphviz {
+    border: 1px solid gray;
+    width: 100%;
+    margin-bottom: 10px;
+}

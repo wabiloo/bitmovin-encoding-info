@@ -5,7 +5,10 @@
   "main": "index.html",
   "dependencies": {
     "@bitmovin/api-sdk": "^1.67.0",
+    "@hpcc-js/wasm": "^1.4.1",
     "bootstrap": "^4.4.1",
+    "d3": "^6.6.2",
+    "d3-graphviz": "^4.0.0",
     "datatables.net": "^1.10.20",
     "datatables.net-dt": "^1.10.20",
     "datatables.net-responsive": "^2.2.3",
