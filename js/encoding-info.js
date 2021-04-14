@@ -256,6 +256,12 @@ async function fetchMuxingOutputInformation(apiHelper, encodingId) {
 
                     graphDef.addNodeFromResource(outputDetails, label, "output");
                     graphDef.addEdge(fullmuxing.id, muxingOutput.outputId);
+
+                    if (!apiHelper.isSegmentedMuxing(fullmuxing)) {
+                        graphDef.addNode(muxing.filename, "File", "", "outputfile");
+                        graphDef.addEdge(fullmuxing.id, muxing.filename);
+                        graphDef.addEdge(muxing.filename, muxingOutput.outputId);
+                    }
                 }))
             }
         });

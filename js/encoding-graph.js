@@ -6,7 +6,7 @@ class GraphBuilder {
         "streams": [["stream", "codec"], true],
         "filters": [["filter"], true],
         "muxings": [["muxing", "drm"], true],
-        "outputs": [["output"], true],
+        "outputs": [["output", "outputfile"], true],
         "manifest": [["manifest"], false]
     };
 
