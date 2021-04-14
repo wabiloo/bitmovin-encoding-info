@@ -366,14 +366,24 @@ class BitmovinHelper {
                 return `ChannelLayout.${codecConfig.channelLayout} @ ${formatBitrate(codecConfig.bitrate)}`;
                 break;
             case "video":
-                let resolution = codecConfig.width || codecConfig.height ? codecConfig.width +'x'+ codecConfig.height : "";
-                let framerate = codecConfig.rate;
+                let resolution = "";
+                if (codecConfig.width && codecConfig.height) {
+                    resolution = `${codecConfig.width}x${codecConfig.height}`
+                } else if (codecConfig.width) {
+                    resolution = `${codecConfig.width}w`
+                } else if (codecConfig.height) {
+                    resolution = `${codecConfig.height}h`
+                }
+
+                let framerate = codecConfig.rate ? `${codecConfig.rate}fps` : "";
                 let streamMode = "";
                 if (stream !== undefined && stream.mode && stream.mode.startsWith("PER_TITLE_TEMPLATE")) {
                     streamMode = "(PT)"
                 }
 
-                return `${resolution} ${framerate}fps @ ${formatBitrate(codecConfig.bitrate)}${streamMode}`;
+                let bitrate = codecConfig.bitrate ? formatBitrate(codecConfig.bitrate) : "";
+
+                return `${resolution} ${framerate} @ ${bitrate}${streamMode}`;
             default:
                 return "(not handled by this tool correctly)";
         }
