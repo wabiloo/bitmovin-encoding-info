@@ -240,15 +240,19 @@ async function fetchMuxingOutputInformation(apiHelper, encodingId) {
         });
 
         // TODO - determine whether the partial vs full representation are different (and therefore whether this additional call is required)
-        await apiHelper.getMuxingDetails(encodingId, muxing).then(fullmuxing => {
+        await apiHelper.getMuxingDetails(encodingId, muxing).then(async(fullmuxing) => {
             console.log("Full muxing:", fullmuxing);
 
             if (fullmuxing.outputs) {
-                fullmuxing.outputs.forEach(muxingOutput => {
+                await Promise.all(fullmuxing.outputs.map(async(muxingOutput) => {
                     allMuxings[muxing.id] = processMuxingEncodingOutput(apiHelper, muxingOutput, fullmuxing, streams);
-                    graphDef.addNode(muxingOutput.outputId, "Output", "", "output");
+
+                    let outputDetails = await apiHelper.getOutputDetails(muxingOutput.outputId);
+                    let label = outputDetails.bucketName ? outputDetails.bucketName : "";
+
+                    graphDef.addNodeFromResource(outputDetails, label, "output");
                     graphDef.addEdge(fullmuxing.id, muxingOutput.outputId);
-                })
+                }))
             }
         });
 
@@ -256,19 +260,22 @@ async function fetchMuxingOutputInformation(apiHelper, encodingId) {
         console.log(`DRMs for muxing ${muxing.id}:`, muxingDrms.items);
 
         muxingDrms.items.forEach(async function(drm) {
-            apiHelper.getMuxingDrmDetails(encodingId, muxing, drm).then(fulldrm => {
+            apiHelper.getMuxingDrmDetails(encodingId, muxing, drm).then(async(fulldrm) => {
                 console.log("DRM info:", fulldrm);
 
                 graphDef.addNodeFromResource(fulldrm,"", "drm", muxing.id);
                 graphDef.addEdge(muxing.id, fulldrm.id);
 
                 if (fulldrm.outputs) {
-                    fulldrm.outputs.forEach(drmOutput => {
+                    await Promise.all(fulldrm.outputs.map(async(drmOutput) => {
                         allMuxings[drm.id] = processMuxingDrmEncodingOutput(apiHelper, drmOutput, muxing, fulldrm, streams);
 
-                        graphDef.addNode(drmOutput.outputId,"Output","", "output");
+                        let outputDetails = await apiHelper.getOutputDetails(muxingOutput.outputId);
+                        let label = outputDetails.bucketName ? outputDetails.bucketName : "";
+
+                        graphDef.addNodeFromResource(outputDetails,label,"output");
                         graphDef.addEdge(fulldrm.id, drmOutput.outputId);
-                    })
+                    }));
                 }
 
                 // add to the global table, for player decryption
@@ -346,18 +353,21 @@ async function fetchManifestOutputInformation(apiHelper, encodingId) {
 
     const manifests = [...dashManifests.items, ...hlsManifests.items, ...smoothManifests.items];
 
-    manifests.forEach(manifest => {
+    manifests.forEach(async(manifest) => {
         console.log(manifest);
 
         graphDef.addNodeFromResource(manifest, "", "manifest");
         graphDef.addEdge(manifest.id, encodingId);
 
-        manifest.outputs.forEach(manifestOutput => {
+        await Promise.all(manifest.outputs.map(async(manifestOutput) => {
             processManifestEncodingOutput(apiHelper, manifestOutput, manifest);
 
-            graphDef.addNode(manifestOutput.outputId, "Output", "", "output");
+            let outputDetails = await apiHelper.getOutputDetails(manifestOutput.outputId);
+            let label = outputDetails.bucketName ? outputDetails.bucketName : "";
+
+            graphDef.addNodeFromResource(outputDetails,label,"output");
             graphDef.addEdge(manifest.id, manifestOutput.outputId);
-        });
+        }));
     });
 
     if (manifests.length === 0) {

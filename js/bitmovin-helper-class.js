@@ -60,7 +60,7 @@ class BitmovinHelper {
     }
 
     getStreamsForEncodingId(encodingId) {
-        return this._api.encoding.encodings.streams.list(encodingId)
+        return this._api.encoding.encodings.streams.list(encodingId,{limit: 100})
     }
 
     getStreamForEncodingIdAndStreamId(encodingId, streamId) {
@@ -76,20 +76,10 @@ class BitmovinHelper {
     }
 
     getOutputDetails(outputId, outputType) {
-        let objectName = BitmovinApi.Output._discriminatorMapping[outputType];
-        let endpoint = this.getOutputEndpointFromClassName(objectName);
+        // let objectName = BitmovinApi.Output._discriminatorMapping[outputType];
+        // let endpoint = this.getOutputEndpointFromClassName(objectName);
 
-        return this._api.encoding.outputs[endpoint].get(outputId);
-
-        // TODO - replace with generic mechanism
-        if (outputType === "S3") {
-            return this._api.encoding.outputs.s3.get(outputId);
-        } else if (outputType === "GCS") {
-            return this._api.encoding.outputs.gcs.get(outputId);
-        } else {
-            console.error("Output type not yet handled by this tool: " + outputType);
-            return false
-        }
+        return this._api.encoding.outputs.get(outputId);
     }
 
     getStreamIdsFromMuxing(muxing) {
