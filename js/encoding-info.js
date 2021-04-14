@@ -409,8 +409,11 @@ async function processManifestEncodingOutput(apiHelper, manifestOutput, manifest
 
 // === DOM functions
 
-function prettyPayload(json) {
-    let html = `<div class="resourceType">${json.constructor.name}</div>`;
+function prettyPayload(json, withTitle = true) {
+    let html = "";
+    if (withTitle) {
+        html += `<div class="resourceType">${json.constructor.name}</div>`;
+    }
     html += `<pre>${prettyPrintJson.toHtml(json, {indent: 2, quoteKeys: true})}</pre>`;
     return html
 }
@@ -679,7 +682,7 @@ async function displayGraph() {
     const dot = graphDef.makeDotDoc(checkedOptions);
 
     d3.select("#graphviz")
-        .graphviz()
+        .graphviz({zoom: false})
         .dot(dot)
         .render(function() {
             d3.select("#graphviz")    //  Or change to #id of your hosting SVG node
@@ -704,28 +707,31 @@ function handleClickGraphNode(evt) {
 
     for (c of gClasses) {
         // collect original
-        const resource = graphDef._nodes[c].resource;
-        console.log(resource);
+        const graphNode = graphDef._nodes[c];
+        const resource = graphNode.resource;
+        const color = graphDef.categoryColors[graphNode.category];
+        console.log("Clicked", resource);
 
         // add an info panel with that node's JSON
         let infoNode = `
             <div class="floater" id="floater-${resource.id}" 
                  style="border: 1px solid ${color}; left: ${x}px; top: ${y}px;">
-                <div class="floater-title" style="background-color: ${color}">
-                    ${resource.id}
-                    <a data-toggle="collapse" href="#floater-collapse-${resource.id}">
-                        collapse
-                    </a>
+                <div class="floater-content">
+                    <div class="floater-title" style="background-color: ${color}">
+                        ${resource.constructor.name}<br/>${resource.id}
+                        <a data-toggle="collapse" href="#floater-collapse-${resource.id}">
+                            collapse
+                        </a>
+                    </div>
+                    <div class="floater-body collapse show" id="floater-collapse-${resource.id}">${prettyPayload(resource, false)}</div>                
                 </div>
-                <div class="floater-body collapse show" id="floater-collapse-${resource.id}">${prettyPayload(resource)}</div>
             </div>`;
 
         document.getElementById("info-floaters").innerHTML += infoNode;
 
-        dragmove(
-            document.querySelector(`#floater-${resource.id}`),
-            document.querySelector(`#floater-${resource.id} .floater-title`)
-        );
+        document.querySelectorAll(".floater").forEach(el => {
+            dragmove(el, el.querySelector(`.floater-title`));
+        });
     }
 }
 

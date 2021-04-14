@@ -136,15 +136,21 @@ span.help {
 }
 .floater {
     font-size: 80%;
-    border: 1px solid lightgray;
+    border: 2px solid lightgray;
     padding: 2px;
     position: absolute;
-    background-color: rgba(255, 255, 255, 0.9);
+    background-color: rgba(255, 255, 255, 0.95);
+    resize: both;
+    overflow: auto;
 }
 .floater-title {
     padding: 2px;
     cursor: move;
+    font-weight: bold;
 }
 .floater-title a {
     float: right
+}
+.floater-body {
+    padding: 5px;
 }
