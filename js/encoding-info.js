@@ -719,15 +719,20 @@ function handleClickGraphNode(evt) {
                 <div class="floater-content">
                     <div class="floater-title" style="background-color: ${color}">
                         ${resource.constructor.name}<br/>${resource.id}
+                        <a class="close-floater" href="#">close</a><br/>
                         <a data-toggle="collapse" href="#floater-collapse-${resource.id}">
                             collapse
-                        </a>
+                        </a>                        
                     </div>
                     <div class="floater-body collapse show" id="floater-collapse-${resource.id}">${prettyPayload(resource, false)}</div>                
                 </div>
             </div>`;
 
         document.getElementById("info-floaters").innerHTML += infoNode;
+
+        document.querySelectorAll(".close-floater").forEach(btn => {
+            btn.addEventListener('click', e => {btn.closest('.floater').remove()});
+        });
 
         document.querySelectorAll(".floater").forEach(el => {
             dragmove(el, el.querySelector(`.floater-title`));
