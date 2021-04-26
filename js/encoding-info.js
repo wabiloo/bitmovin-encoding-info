@@ -1083,10 +1083,13 @@ $(document).ready(function () {
                 defaultContent: '',
             },
             {
+                data: "muxingid",
+                title: "Muxing Id"
+            },
+            {
                 data: "muxing",
                 title: "Muxing",
-                orderable: false,
-                // className: "none"
+                orderable: false
             },
             {
                 data: "drm",
@@ -1112,11 +1115,6 @@ $(document).ready(function () {
                 data: "urls",
                 title: "URLs",
                 orderable: false
-            },
-            {
-                data: "muxingid",
-                title: "Muxing Id",
-                className: "none"
             },
             {
                 data: "drmid",
@@ -1190,6 +1188,11 @@ $(document).ready(function () {
                 defaultContent: '',
             },
             {
+                data: "streamid",
+                title: "Stream Id",
+                className: "copy-me"
+            },
+            {
                 data: "label",
                 title: "Codec Summary",
                 width: "250px",
@@ -1217,11 +1220,6 @@ $(document).ready(function () {
                 type: 'number',
                 width: "80px",
                 render: dataTable_bitrate
-            },
-            {
-                data: "streamid",
-                title: "Stream Id",
-                className: "none copy-me"
             },
             {
                 data: "streamid",
