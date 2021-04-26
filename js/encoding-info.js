@@ -86,7 +86,11 @@ async function fetchStreamInformation(apiHelper, encodingId) {
         console.log("Filters", filters);
         const filterTable = this.makeStreamFilterTable(filters);
 
-        const inputInfo = await apiHelper.getStreamInputDetails(encodingId, stream.id);
+        let inputInfo = "";
+        try {
+            inputInfo = await apiHelper.getStreamInputDetails(encodingId, stream.id);
+        } catch (e) {
+        }
         console.log("Input", inputInfo);
 
         // const inputStreams = await this.fetchInputStreamInformation(apiHelper, encodingId, stream);
