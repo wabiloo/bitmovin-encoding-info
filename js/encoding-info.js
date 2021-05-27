@@ -123,24 +123,28 @@ async function fetchStreamInformation(apiHelper, encodingId) {
         }
 
         if (!_.includes(inputsFound, inputPath)) {
-            let inputrow = {
-                "path": inputPath,
-                "duration": inputInfo.duration,
-                "bitrate": inputInfo.bitrate,
-                "streamids": "(not implemented)",
-                "videoStreams": inputInfo.videoStreams.length,
-                "audioStreams": inputInfo.audioStreams.length,
-                "json": prettyPayload(inputInfo)
-            };
+            try {
+                let inputrow = {
+                    "path": inputPath,
+                    "duration": inputInfo.duration,
+                    "bitrate": inputInfo.bitrate,
+                    "streamids": "(not implemented)",
+                    "videoStreams": inputInfo.videoStreams.length,
+                    "audioStreams": inputInfo.audioStreams.length,
+                    "json": prettyPayload(inputInfo)
+                };
 
-            addInputRow(inputrow);
-            inputsFound.push(inputPath)
+                addInputRow(inputrow);
+                inputsFound.push(inputPath)
+            } catch (e) {
+                console.error(e)
+            }
         }
     }));
 
 }
 
-async function makeInputStreamChainTable(apiHelper, encodingId, parent, parentId, initialTitle, inputPath = null) {
+async function makeInputStreamChainTable(apiHelper, encodingId, parents, parentId, initialTitle, inputPath = null) {
 
     initialTitle = initialTitle || "(top)";
 

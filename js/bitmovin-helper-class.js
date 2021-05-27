@@ -158,7 +158,9 @@ class BitmovinHelper {
     }
 
     getCodecNameFromClass(classname) {
-        return this.getObjectNameFromClass(BitmovinApi.CodecConfiguration._discriminatorMapping, classname)
+        var codec = this.getObjectNameFromClass(BitmovinApi.CodecConfiguration._discriminatorMapping, classname)
+        return codec || "unknown"
+
     }
 
     getObjectNameFromClass(object, classname) {
@@ -186,7 +188,7 @@ class BitmovinHelper {
             return "audio";
         if (classname.includes("Video"))
             return "video";
-
+        return "unknown"
     }
 
     getCodecEndpointFromClassName(classname) {
