@@ -94,7 +94,7 @@ async function fetchStreamInformation(apiHelper, encodingId) {
         console.log("Input", inputInfo);
 
         // const inputStreams = await this.fetchInputStreamInformation(apiHelper, encodingId, stream);
-        const inputStreamsTable = await this.makeInputStreamChainTable(apiHelper, encodingId, stream.inputStreams[0], stream.id, "(stream)");
+        const inputStreamsTable = await this.makeInputStreamChainTable(apiHelper, encodingId, stream.inputStreams, stream.id, "(stream)");
 
         let row = {
             "streamid": stream.id,
@@ -154,43 +154,45 @@ async function makeInputStreamChainTable(apiHelper, encodingId, parents, parentI
     let header = $('<th>').appendTo(headerRow);
     header.text(initialTitle);
 
-    let mainRow = $("<tr>").appendTo(body);
+    for (parent of parents) {
+        let mainRow = $("<tr>").appendTo(body);
 
-    let cell1 = $("<td>").appendTo(mainRow);
-    let jsonHtml = $(prettyPayload(parent)).appendTo(cell1);
+        let cell1 = $("<td>").appendTo(mainRow);
+        let jsonHtml = $(prettyPayload(parent)).appendTo(cell1);
 
-    let cell2 = $("<td>").appendTo(mainRow);
+        let cell2 = $("<td>").appendTo(mainRow);
 
-    let subInputStreamIds = collectInputStreamIds(parent, []);
-    await Promise.all(subInputStreamIds.map(async (inputStreamId) => {
-        const inputStream = await apiHelper.getInputStreamDetails(encodingId, inputStreamId);
-        console.log("Input Stream details:", inputStream);
+        let subInputStreamIds = collectInputStreamIds(parent, []);
+        await Promise.all(subInputStreamIds.map(async (inputStreamId) => {
+            const inputStream = await apiHelper.getInputStreamDetails(encodingId, inputStreamId);
+            console.log("Input Stream details:", inputStream);
 
-        graphDef.addNodeFromResource(inputStream, "", "inputstream");
-        graphDef.addEdge(inputStreamId, parentId);
+            graphDef.addNodeFromResource(inputStream, "", "inputstream");
+            graphDef.addEdge(inputStreamId, parentId);
 
-        if (_.has(inputStream, "inputPath")) {
-            inputPath = inputStream.inputPath;
-            let shortenedPath = inputPath;
-            if (shortenedPath.includes("/")) {
-                shortenedPath = ".../" + inputPath.substring(inputPath.lastIndexOf("/") + 1);
+            if (_.has(inputStream, "inputPath")) {
+                inputPath = inputStream.inputPath;
+                let shortenedPath = inputPath;
+                if (shortenedPath.includes("/")) {
+                    shortenedPath = ".../" + inputPath.substring(inputPath.lastIndexOf("/") + 1);
+                }
+
+                let inputDetails = await apiHelper.getInputDetails(inputStream.inputId);
+                let label = inputDetails.bucketName ? inputDetails.bucketName : "";
+
+                graphDef.addNodeFromResource(inputDetails, label, "input");
+                graphDef.addNode(shortenedPath, "File", "", "inputfile");
+                graphDef.addEdge(inputStream.inputId, shortenedPath);
+                graphDef.addEdge(shortenedPath, inputStreamId)
             }
 
-            let inputDetails = await apiHelper.getInputDetails(inputStream.inputId);
-            let label = inputDetails.bucketName ? inputDetails.bucketName : "";
-
-            graphDef.addNodeFromResource(inputDetails, label, "input");
-            graphDef.addNode(shortenedPath, "File", "", "inputfile");
-            graphDef.addEdge(inputStream.inputId, shortenedPath);
-            graphDef.addEdge(shortenedPath, inputStreamId)
-        }
-
-        parentId = parent.id || parent.inputStreamId;
-        res = await makeInputStreamChainTable(apiHelper, encodingId, inputStream, parentId, inputStream.type, inputPath);
-        cell2.append(res[0]);
-        // bubble the inputPath up the chain
-        inputPath = res[1];
-    }));
+            parentId = parent.id || parent.inputStreamId;
+            res = await makeInputStreamChainTable(apiHelper, encodingId, [inputStream], parentId, inputStream.type, inputPath);
+            cell2.append(res[0]);
+            // bubble the inputPath up the chain
+            inputPath = res[1];
+        }));
+    }
 
     return [table, inputPath]
 }
