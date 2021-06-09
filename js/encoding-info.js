@@ -466,7 +466,34 @@ async function processManifestEncodingOutput(apiHelper, manifestOutput, manifest
         manifestTree = await apiHelper.getHlsManifestResourceTree(manifest.id)
     }
 
+    addManifestResourcesToGraph(manifestTree);
+
     addManifestRow(manifest, urls, manifestTree)
+}
+
+// add nodes and edges to graph by traversing the manifest tree
+function addManifestResourcesToGraph(tree) {
+    let parent = tree["payload"];
+    if ("children" in tree) {
+        for (childNode of tree['children']) {
+            let child = childNode['payload'];
+            graphDef.addNodeFromResource(child, "", "manifest");
+            graphDef.addEdge(parent.id, child.id);
+
+            for (prop of Object.keys(child)) {
+                if (_.endsWith(prop, "Id")) {
+                    // some exceptions
+                    if (!['encodingId'].includes(prop) && child[prop] != undefined) {
+                        console.log(`Adding manifest edge for ${prop} = ${child[prop]} to ${child.id}`);
+                        graphDef.addEdge(child.id, child[prop]);
+                    }
+                }
+            }
+
+
+            addManifestResourcesToGraph(childNode);
+        }
+    }
 }
 
 // === DOM functions

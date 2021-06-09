@@ -5,6 +5,7 @@ class GraphBuilder {
         "inputs": [["input", "inputstream", "inputfile"], true],
         "streams": [["stream", "codec"], true],
         "filters": [["filter"], true],
+        "stream decorations": [["sprite", "thumbnail"], false],
         "muxings": [["muxing", "drm"], true],
         "outputs": [["output", "outputfile"], true],
         "manifest": [["manifest"], false]
@@ -20,7 +21,9 @@ class GraphBuilder {
         "muxing": "#DCB1F2",
         "output": "#B3B3B3",
         "drm": "#F89C73",
-        "manifest": "#C9DB73"
+        "manifest": "#C9DB73",
+        "sprite": "#66CCCC",
+        "thumbnail": "#e7b7dd"
     };
 
 
