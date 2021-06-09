@@ -45,6 +45,9 @@ class GraphBuilder {
     }
 
     addEdge(from_id, to_id) {
+        if (from_id === undefined || to_id === undefined) {
+            throw ("Invalid edge from " + from_id + " to " + to_id);
+        }
         let id = `${from_id}_to_${to_id}`;
         this._edges[id] = {
             from_id: from_id,
@@ -109,7 +112,7 @@ class GraphBuilder {
 
             // set edge color based on target node
             let node = this._nodes[edge.to_id];
-            if (node.category in this.categoryColors) {
+            if (node && node.category in this.categoryColors) {
                 attrs.color = this.categoryColors[node.category]
             }
 
