@@ -143,6 +143,15 @@ class BitmovinHelper {
         }
     }
 
+    getStreamSprites(encodingId, streamId) {
+        return this._api.encoding.encodings.streams.sprites.list(encodingId, streamId)
+    }
+
+    getStreamThumbnails(encodingId, streamId) {
+        return this._api.encoding.encodings.streams.thumbnails.list(encodingId, streamId)
+    }
+
+
     // --- Bitmovin Endpoint and Object name remapping
 
     getOutputNameFromClass(classname) {

@@ -84,7 +84,13 @@ async function fetchStreamInformation(apiHelper, encodingId) {
 
         const filters = await this.fetchFiltersInformation(apiHelper, encodingId, stream.id, []);
         console.log("Filters", filters);
-        const filterTable = this.makeStreamFilterTable(filters);
+        const filterTable = this.makeIndexedSubTable(filters);
+
+        const decorations = [];
+        decorations.push(...await this.fetchStreamSpritesInformation(apiHelper, encodingId, stream.id));
+        decorations.push(...await this.fetchStreamThumbnailsInformation(apiHelper, encodingId, stream.id));
+        console.log("Decorations", decorations);
+        const decorationTable = this.makeIndexedSubTable(decorations, "*");
 
         let inputInfo = "";
         try {
@@ -108,6 +114,7 @@ async function fetchStreamInformation(apiHelper, encodingId) {
             "jsonstream": prettyPayload(stream),
             "jsoncodec": prettyPayload(codecConfig),
             "jsonfilters": filterTable.prop('outerHTML'),
+            "jsondecorations": decorationTable.prop('outerHTML'),
             "inputstreams": inputStreamsTable[0].prop('outerHTML'),
             "inputinfo": prettyPayload(inputInfo)
         };
@@ -235,6 +242,51 @@ async function fetchFiltersInformation(apiHelper, encodingId, streamId) {
 
     return resolvedFilters;
 }
+
+async function fetchStreamSpritesInformation(apiHelper, encodingId, streamId) {
+    const sprites = await apiHelper.getStreamSprites(encodingId, streamId);
+
+    const resolvedSprites = await Promise.all(sprites.items.map(async function (sprite) {
+
+        graphDef.addNodeFromResource(sprite, "", "sprite");
+        graphDef.addEdge(streamId, sprite.id);
+
+        await Promise.all(sprite.outputs.map(async (spriteOutput) => {
+            let outputDetails = await apiHelper.getOutputDetails(spriteOutput.outputId);
+            let label = outputDetails.bucketName ? outputDetails.bucketName : "";
+
+            graphDef.addNodeFromResource(outputDetails, label, "output");
+            graphDef.addEdge(sprite.id, spriteOutput.outputId);
+        }));
+
+        return sprite
+    }));
+
+    return resolvedSprites;
+}
+
+async function fetchStreamThumbnailsInformation(apiHelper, encodingId, streamId) {
+    const thumbs = await apiHelper.getStreamThumbnails(encodingId, streamId);
+
+    const resolvedSprites = await Promise.all(thumbs.items.map(async function (thumbs) {
+
+        graphDef.addNodeFromResource(thumbs, "", "thumbnail");
+        graphDef.addEdge(streamId, thumbs.id);
+
+        await Promise.all(thumbs.outputs.map(async (thumbOutput) => {
+            let outputDetails = await apiHelper.getOutputDetails(thumbOutput.outputId);
+            let label = outputDetails.bucketName ? outputDetails.bucketName : "";
+
+            graphDef.addNodeFromResource(outputDetails, label, "output");
+            graphDef.addEdge(thumbs.id, thumbOutput.outputId);
+        }));
+
+        return thumbs
+    }));
+
+    return resolvedSprites;
+}
+
 
 async function fetchMuxingOutputInformation(apiHelper, encodingId) {
     let allMuxings = {};
@@ -428,13 +480,19 @@ function prettyPayload(json, withTitle = true) {
     return html
 }
 
-function makeStreamFilterTable(filters) {
+
+function makeIndexedSubTable(filters, bullet) {
     let table = $('<table class="table table-sm table-hover filters"></table>');
     let tableBody = $('<tbody>');
 
     for (const [pos, json] of Object.entries(filters)) {
         let jsonHtml = prettyPayload(json);
-        let newRow = $(`<tr><th>${pos}</th><td>${jsonHtml}</td>`);
+        let newRow;
+        if (bullet !== undefined) {
+            newRow = $(`<tr><th>${bullet}</th><td>${jsonHtml}</td>`);
+        } else {
+            newRow = $(`<tr><th>${pos}</th><td>${jsonHtml}</td>`);
+        }
         tableBody.append(newRow);
     }
 
@@ -1253,6 +1311,12 @@ $(document).ready(function () {
             {
                 data: "jsonfilters",
                 title: "Filters",
+                // controls DataTables() responsive and force a child row
+                className: "none copy-me"
+            },
+            {
+                data: "jsondecorations",
+                title: "Decorations",
                 // controls DataTables() responsive and force a child row
                 className: "none copy-me"
             },
