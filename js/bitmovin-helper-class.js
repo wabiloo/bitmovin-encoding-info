@@ -263,7 +263,7 @@ class BitmovinHelper {
 
     async getDashManifestResourceTree_adaptationsets(manifestId, periodId) {
         let adaptationsets = await Promise.all(
-            ['audio', 'video', 'subtitle'].map(t => {
+            ['audio', 'video', 'subtitle', 'image'].map(t => {
                 return this._api.encoding.manifests.dash.periods.adaptationsets[t].list(manifestId, periodId);
             }
         ));
