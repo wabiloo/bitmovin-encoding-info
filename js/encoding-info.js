@@ -35,7 +35,9 @@ async function fetchEncodingInformation(apiHelper, encodingId) {
         const encodingStart = await apiHelper.getEncodingStart(encodingId);
         console.log(encodingStart);
 
-        addEncodingRow(encoding, encodingStart);
+        const encodingCustomData = await apiHelper.getEncodingCustomData(encodingId);
+
+        addEncodingRow(encoding, encodingCustomData, encodingStart);
 
         graphDef.addNodeFromResource(encoding, "", "encoding")
     } catch (e) {
@@ -527,13 +529,14 @@ function makeIndexedSubTable(filters, bullet) {
     return table;
 }
 
-function addEncodingRow(encoding, encodingStart) {
+function addEncodingRow(encoding, customData, encodingStart) {
     let row = {
         "encodingname": encoding.name,
         "status": encoding.status,
         "version": encoding.selectedEncoderVersion,
         "region": encoding.selectedCloudRegion,
         "json_encoding": prettyPayload(encoding),
+        "json_customdata": prettyPayload(customData),
         "json_start": prettyPayload(encodingStart)
     };
 
@@ -1088,6 +1091,12 @@ $(document).ready(function () {
             {
                 data: "json_encoding",
                 title: "Encoding",
+                // controls DataTables() responsive and force a child row
+                className: "none copy-me"
+            },
+            {
+                data: "json_customdata",
+                title: "Custom Data",
                 // controls DataTables() responsive and force a child row
                 className: "none copy-me"
             },
