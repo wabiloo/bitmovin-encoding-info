@@ -19,6 +19,10 @@ class BitmovinHelper {
         return this._api.encoding.encodings.getStartRequest(encodingId);
     }
 
+    getEncodingStatus(encodingId) {
+        return this._api.encoding.encodings.status(encodingId);
+    }
+
     getMuxingsForEncodingId(encodingId) {
 
         return this._api.encoding.encodings.muxings.list(encodingId, {limit: 100})

@@ -35,9 +35,12 @@ async function fetchEncodingInformation(apiHelper, encodingId) {
         const encodingStart = await apiHelper.getEncodingStart(encodingId);
         console.log(encodingStart);
 
+        const encodingStatus = await apiHelper.getEncodingStatus(encodingId);
+        console.log(encodingStatus);
+
         const encodingCustomData = await apiHelper.getEncodingCustomData(encodingId);
 
-        addEncodingRow(encoding, encodingCustomData, encodingStart);
+        addEncodingRow(encoding, encodingCustomData, encodingStart, encodingStatus);
 
         graphDef.addNodeFromResource(encoding, "", "encoding")
     } catch (e) {
@@ -529,7 +532,7 @@ function makeIndexedSubTable(filters, bullet) {
     return table;
 }
 
-function addEncodingRow(encoding, customData, encodingStart) {
+function addEncodingRow(encoding, customData, encodingStart, encodingStatus) {
     let row = {
         "encodingname": encoding.name,
         "status": encoding.status,
@@ -537,7 +540,8 @@ function addEncodingRow(encoding, customData, encodingStart) {
         "region": encoding.selectedCloudRegion,
         "json_encoding": prettyPayload(encoding),
         "json_customdata": prettyPayload(customData),
-        "json_start": prettyPayload(encodingStart)
+        "json_start": prettyPayload(encodingStart),
+        "json_status": prettyPayload(encodingStatus)
     };
 
     bmTables.encodings.row.add(row).draw()
@@ -1103,6 +1107,12 @@ $(document).ready(function () {
             {
                 data: "json_start",
                 title: "Start Configuration",
+                // controls DataTables() responsive and force a child row
+                className: "none copy-me"
+            },
+            {
+                data: "json_status",
+                title: "Status",
                 // controls DataTables() responsive and force a child row
                 className: "none copy-me"
             }
