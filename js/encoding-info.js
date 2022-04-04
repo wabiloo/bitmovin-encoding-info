@@ -115,6 +115,7 @@ async function fetchStreamInformation(apiHelper, encodingId) {
             "label": apiHelper.makeStreamLabel(codecConfig, stream),
             "width": codecConfig.width,
             "height": codecConfig.height,
+            "lang": stream.metadata ? stream.metadata.language : "-",
             "bitrate": codecConfig.bitrate,
             "jsonstream": prettyPayload(stream),
             "jsoncodec": prettyPayload(codecConfig),
@@ -1325,6 +1326,11 @@ $(document).ready(function () {
             {
                 data: "height",
                 title: "Height",
+                defaultContent: "-"
+            },
+            {
+                data: "lang",
+                title: "language",
                 defaultContent: "-"
             },
             {
