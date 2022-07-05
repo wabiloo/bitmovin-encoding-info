@@ -115,8 +115,10 @@ async function fetchStreamInformation(apiHelper, encodingId) {
             "label": apiHelper.makeStreamLabel(codecConfig, stream),
             "width": codecConfig.width,
             "height": codecConfig.height,
+            "bitrate": codecConfig.bitrate ? codecConfig.bitrate : (codecConfig.crf ? "CRF " + codecConfig.crf : "-"),
+            "layout": codecConfig.channelLayout,
             "lang": stream.metadata ? stream.metadata.language : "-",
-            "bitrate": codecConfig.bitrate,
+            "conditions": dataTable_conditions(stream.conditions, stream.ignoredBy),
             "jsonstream": prettyPayload(stream),
             "jsoncodec": prettyPayload(codecConfig),
             "jsonfilters": filterTable.prop('outerHTML'),
@@ -374,6 +376,10 @@ async function processMuxingEncodingOutput(apiHelper, muxingOutput, muxing, stre
     let fileName = null;
     if (!apiHelper.isSegmentedMuxing(muxing)) {
         fileName = muxing.filename
+    } else {
+        if (['Fmp4Muxing', 'WebMuxing', 'TsMuxing'].includes(muxing.constructor.name)) {
+            fileName = muxing.segmentNaming
+        }
     }
 
     const urls = await apiHelper.computeUrls(muxingOutput.outputId, muxingOutput.outputPath, fileName);
@@ -382,6 +388,7 @@ async function processMuxingEncodingOutput(apiHelper, muxingOutput, muxing, stre
         apiHelper.getMuxingNameFromClass(muxing.constructor.name),
         muxing.id,
         muxing.avgBitrate,
+        muxing.segmentsMuxed,
         null,
         null,
         urls,
@@ -409,6 +416,7 @@ async function processMuxingDrmEncodingOutput(apiHelper, drmOutput, muxing, drm,
         apiHelper.getMuxingNameFromClass(muxing.constructor.name),
         muxing.id,
         muxing.avgBitrate,
+        muxing.segmentsMuxed,
         apiHelper.getDrmNameFromClass(drm.constructor.name),
         drm.id,
         urls,
@@ -548,35 +556,56 @@ function addEncodingRow(encoding, customData, encodingStart, encodingStatus) {
     bmTables.encodings.row.add(row).draw()
 }
 
-function addMuxingRow(muxing_type, muxing_id, bitrate, drm_type, drm_id, urls, streams, json_muxing, json_drm) {
+function addMuxingRow(muxing_type, muxing_id, bitrate, segmentsMuxed, drm_type, drm_id, urls, streams, json_muxing, json_drm) {
     let urlTable = $('<table class="table table-sm table-hover urls"></table>');
     let urlTableBody = $('<tbody>');
 
     urlTableBody.append(addUrlRow('filename', urls.filename));
     urlTableBody.append(addUrlRow('path', urls.outputPath));
 
-    if (bitrate) {
-        urlTableBody.append(addUrlRow('storage', urls.storageUrl, [button_externalLink("console", urls.consoleUrl)]));
-
-        if (urls.streamingUrl !== "") {
+    if (bitrate || segmentsMuxed) {
+        if (urls.storageUrl.includes('://')) {
+            urlTableBody.append(addUrlRow('storage', urls.storageUrl, [button_externalLink("console", urls.consoleUrl)]));
+        }
+        if (urls.streamingUrl.startsWith('http')) {
             urlTableBody.append(addUrlRow('streaming', urls.streamingUrl, [button_showPlayer(muxing_type, urls.streamingUrl)]));
         }
     } else {
-        urlTableBody.append(addUrlRow('storage', urls.storageUrl, null));
+        if (urls.storageUrl.includes('://')) {
+            urlTableBody.append(addUrlRow('storage', urls.storageUrl, null));
+        }
     }
 
     urlTable.append(urlTableBody);
+
+    let outputSummary = urls.outputType || "<i>unhandled</i>"
+    if (urls.host) {
+        outputSummary += `<br/>(${urls.host})`
+    }
+
+    let genedSummary = []
+    if (bitrate) {
+        genedSummary.push(formatBitrate(bitrate))
+    }
+    if (segmentsMuxed) {
+        genedSummary.push(`${segmentsMuxed} segments`)
+    }
+
+    let gened = genedSummary.length ? '✅' : '❌'
+    // genedSummary.unshift(gened)
 
     let row = {
         "muxing": muxing_type,
         "muxingid": muxing_id,
         "drmid": drm_id,
         "drm": drm_type ? drm_type : "-",
-        "bitrate": bitrate,
-        "output": urls.outputType || "(unhandled output type)",
-        "host": urls.host || "(unhandled output type)",
+        "bitrate": genedSummary.join("<br/>"),
+        "generated": gened,
+        "output": outputSummary,
+        // "host": urls.host || "(unhandled output type)",
         "urls": urlTable.prop('outerHTML'),
         "streams": addRefLinks(streams),
+        "streamcount": streams.length,
         "json_muxing": prettyPayload(json_muxing),
         "json_drm": prettyPayload(json_drm),
     };
@@ -600,7 +629,9 @@ function hideManifestTable() {
 }
 
 function button_showPlayer(manifest_type, streamingUrl) {
-    return `<button type="button" class="btn btn-xs btn-primary btn-start-play" data-streamType="${manifest_type}" data-streamUrl="${streamingUrl}">play</button>`;
+    if (streamingUrl.startsWith('http')) {
+        return `<button type="button" class="btn btn-xs btn-primary btn-start-play" data-streamType="${manifest_type}" data-streamUrl="${streamingUrl}">play</button>`;
+    }
 }
 
 function button_viewFile(url) {
@@ -609,7 +640,9 @@ function button_viewFile(url) {
 
 
 function button_externalLink(name, url) {
-    return $(`<a class="btn btn-xs btn-secondary" href="${url}" target="_blank">${name}</a>`);
+    if (url.includes('://')) {
+        return $(`<a class="btn btn-xs btn-secondary" href="${url}" target="_blank">${name}</a>`);
+    }
 }
 
 function button_highlightRelatedMuxingsForStream(data, type, row, meta) {
@@ -658,19 +691,26 @@ function addManifestRow(manifest, urls, manifestTree) {
             'storage',
             urls.storageUrl,
             [button_externalLink("console", urls.consoleUrl)]));
-    urlTableBody.append(
-        addUrlRow(
-            'streaming',
-            urls.streamingUrl,
-            [button_showPlayer(manifest.type, urls.streamingUrl), button_viewFile(urls.streamingUrl)]));
+    if (urls.streamingUrl.startsWith('http')) {
+        urlTableBody.append(
+            addUrlRow(
+                'streaming',
+                urls.streamingUrl,
+                [button_showPlayer(manifest.type, urls.streamingUrl), button_viewFile(urls.streamingUrl)]));
+
+    }
 
     urlTable.append(urlTableBody);
+
+    let outputSummary = urls.outputType || "<i>unhandled</i>"
+    if (urls.host) {
+        outputSummary += `<br/>(${urls.host})`
+    }
 
     let row = {
         "manifestid": manifest.id,
         "manifest": manifest.type,
-        "output": urls.outputType,
-        "host": urls.host || "n/a",
+        "output": outputSummary,
         "urls": urlTable.prop('outerHTML'),
         "tree": prettyPayload(manifest)
     };
@@ -740,6 +780,28 @@ function dataTable_duration(data, type, row, meta) {
         return formatDuration(data)
     } else {
         return undefined;
+    }
+}
+
+function dataTable_conditions(conditions, ignoredBy) {
+    ignored = ignoredBy.length > 0
+
+    if (conditions === undefined) {
+        return `-`
+    } else {
+        let flag = (ignored ? `❌` : `✅`)
+        let summ = ""
+        if (conditions.attribute) {
+            summ = conditions.attribute
+        }
+        if (conditions.conditions) {
+            let attrs = _.map(conditions.conditions, 'attribute')
+            summ = attrs.join(conditions.type === "AND" ? " + " : " | ")
+        }
+        if (summ !== "") {
+            summ = "&nbsp; (" + summ + ")"
+        }
+        return flag + summ
     }
 }
 
@@ -1154,11 +1216,6 @@ $(document).ready(function () {
                 title: 'Output'
             },
             {
-                data: 'host',
-                title: 'Host',
-                className: "copy-me"
-            },
-            {
                 data: "urls",
                 title: "URLs",
                 orderable: false
@@ -1211,20 +1268,23 @@ $(document).ready(function () {
                 title: "DRM",
             },
             {
+                data: "streamcount",
+                title: "# Streams"
+            },
+            {
+                data: "generated",
+                title: "Generated?"
+            },
+            {
                 data: "bitrate",
-                title: "Avg Bitrate",
+                title: "Gen Summary",
                 defaultContent: "-",
                 type: 'number',
-                render: dataTable_bitrate
+                // render: dataTable_bitrate
             },
             {
                 data: "output",
                 title: "Output"
-            },
-            {
-                data: "host",
-                title: "Host",
-                className: "copy-me"
             },
             {
                 data: "urls",
@@ -1269,6 +1329,7 @@ $(document).ready(function () {
         rowCallback: function (row, data, index) {
             $(row).addClass(data.muxingid);
 
+            // TODO - Not enough to just look at bitrate. Doesn't work for audio muxings. Check ignoredBy as well (and PerTitle?)
             if (!data.bitrate) {
                 $('td', row).css('color', 'lightgray');
             }
@@ -1311,7 +1372,7 @@ $(document).ready(function () {
                 data: "label",
                 title: "Codec Summary",
                 width: "250px",
-                className: "copy-me"
+                className: "none"
             },
             {
                 data: "mode",
@@ -1329,8 +1390,8 @@ $(document).ready(function () {
                 defaultContent: "-"
             },
             {
-                data: "lang",
-                title: "language",
+                data: "layout",
+                title: "Layout",
                 defaultContent: "-"
             },
             {
@@ -1340,6 +1401,16 @@ $(document).ready(function () {
                 type: 'number',
                 width: "80px",
                 render: dataTable_bitrate
+            },
+            {
+                data: "lang",
+                title: "Language",
+                defaultContent: "-"
+            },
+            {
+                data: 'conditions',
+                title: "Conditions?",
+                defaultContent: "-"
             },
             {
                 data: "streamid",
