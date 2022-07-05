@@ -2,6 +2,101 @@ body {
     transition: background-color ease-in 1s;
 }
 
+.section {
+    margin-top: 10px;
+    border-left: 3px solid;
+}
+.section .header {
+    padding-left: 0;
+}
+.section .header h2 {
+    padding-left: 15px;
+}
+.section .col-12 {
+    margin-left: 20px;
+}
+
+.topic-encodings {
+    border-left-color: blue;
+}
+.topic-encodings h2 {
+    border-top-color: blue;
+}
+.topic-encodings .table .thead-light th {
+    background-color: blue;
+    color: white;
+}
+
+.topic-muxings {
+    border-left-color: green;
+}
+.topic-muxings h2 {
+    border-top-color: green;
+}
+.topic-muxings.nav-item {
+    border-bottom: green 5px solid;
+}
+.topic-muxings .table .thead-light th {
+    background-color: green;
+    color: white;
+}
+
+.topic-streams {
+    border-left-color: darkred;
+}
+.topic-streams h2 {
+    border-top-color: darkred;
+}
+.topic-streams.nav-item {
+    border-bottom: darkred 5px solid;
+}
+.topic-streams .table .thead-light th {
+    background-color: darkred;
+    color: white;
+}
+
+.topic-inputs {
+    border-left-color: darkorange;
+}
+.topic-inputs h2 {
+    border-top-color: darkorange;
+}
+.topic-inputs.nav-item {
+    border-bottom: darkorange 5px solid;
+}
+.topic-inputs .table .thead-light th {
+    background-color: darkorange;
+    color: white;
+}
+
+.topic-manifests {
+    border-left-color: purple;
+}
+.topic-manifests h2 {
+    border-top-color: purple;
+}
+.topic-manifests.nav-item {
+    border-bottom: purple 5px solid;
+}
+.topic-manifests .table .thead-light th {
+    background-color: purple;
+    color: white;
+}
+
+.topic-graph {
+    border-left-color: darkgoldenrod;
+}
+.topic-graph h2 {
+    border-top-color: darkgoldenrod;
+}
+.topic-graph.nav-item {
+    border-bottom: darkgoldenrod 5px solid;
+}
+
+.nav-item {
+    margin-right: 5px;
+}
+
 .copied {
     background-color: #b2eeaa;
 }
@@ -34,7 +129,7 @@ a.anchor {
 }
 
 h2 {
-    border-top: 2px solid coral;
+    border-top: 3px solid coral;
     font-size: 16px;
     text-align: left;
     text-transform: uppercase;
