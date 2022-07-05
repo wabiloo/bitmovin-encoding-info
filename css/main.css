@@ -155,3 +155,21 @@ span.help {
 .floater-body {
     padding: 5px;
 }
+
+.renderjson a              { text-decoration: none; }
+.renderjson .disclosure    {
+    color: crimson;
+    font-size: 150%;
+    line-height: 0;
+    position: relative;
+    top: 2px;
+    margin-right: 10px;
+}
+.renderjson .syntax        { color: grey; }
+.renderjson .string        { color: forestgreen; }
+.renderjson .number        { color: orange; }
+.renderjson .boolean       { color: plum; }
+.renderjson .key           { color: dimgray; }
+.renderjson .keyword       { color: lightgoldenrodyellow; }
+.renderjson .object.syntax { color: lightseagreen; }
+.renderjson .array.syntax  { color: lightsalmon; }

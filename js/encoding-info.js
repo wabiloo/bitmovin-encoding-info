@@ -517,7 +517,8 @@ function prettyPayload(json, withTitle = true) {
     if (withTitle) {
         html += `<div class="resourceType">${json.constructor.name}</div>`;
     }
-    html += `<pre>${prettyPrintJson.toHtml(json, {indent: 2, quoteKeys: true})}</pre>`;
+    html += `<pre>${JSON.stringify(json, null, 2)}</pre>`;
+
     return html
 }
 
@@ -806,8 +807,10 @@ function dataTable_conditions(conditions, ignoredBy) {
 }
 
 function dataTable_renderHiddenColumns(api, rowIdx, columns) {
-    var data = $.map(columns, function (col, i) {
-        return col.hidden ?
+    var htmlRows = $.map(columns, function (col, i) {
+        // .hidden = hidden because of the Responsive extension.
+        // .visible() = hidden because of column configuration or colvis extension
+        return (col.hidden || !api.column(col.columnIndex).visible()) ?
             '<tr data-dt-row="' + col.rowIndex + '" data-dt-column="' + col.columnIndex + '">' +
             '<th>' + col.title + '</th> ' +
             '<td class="copy-me">' + col.data + '</td>' +
@@ -815,9 +818,24 @@ function dataTable_renderHiddenColumns(api, rowIdx, columns) {
             '';
     }).join('');
 
-    return data ?
-        $('<table class="hidden-columns"/>').append(data) :
-        false;
+    if (htmlRows) {
+        let htmlTable = $('<table class="hidden-columns"/>').append(htmlRows)
+        // render json
+        htmlTable.find('pre').each(function() {
+            let json = $(this).text()
+            $(this).replaceWith(renderInteractiveJson(json))
+        })
+
+        return htmlTable
+    } else{
+        return false;
+    }
+}
+
+function renderInteractiveJson(jsonString) {
+    return renderjson.set_show_to_level("all")
+        .set_sort_objects(true)
+        (JSON.parse(jsonString))
 }
 
 // === Graph functions
